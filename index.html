@@ -25,14 +25,21 @@
       position: relative;
       text-align: left;
     }
-    input {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 1em;
-    }
+ /* 텍스트 입력칸만 100% */
+input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 1em;
+}
+
+/* 체크박스는 기본 크기 유지 */
+input[type="checkbox"] {
+  width: auto;
+  margin-right: 5px;
+}
     .btn {
       width: 100%;
       padding: 10px;
