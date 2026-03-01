@@ -45,7 +45,6 @@
     }
     .btn-submit { background-color: #28a745; color: white; }
     .btn-view   { background-color: #007bff; color: white; }
-    .btn-admin  { background-color: #343a40; color: white; }
 
     .back-btn {
       background-color: #3fa9f5;
@@ -64,16 +63,14 @@
     .checkbox-group label {
       margin-right: 15px;
       font-size: 0.95em;
+      white-space: nowrap;
     }
 
-    #etcTimeInput {
-      margin-top: 8px;
-    }
+    #etcTimeInput { margin-top: 8px; }
 
-    summary {
-      font-weight: bold;
-      cursor: pointer;
-    }
+    summary { font-weight: bold; cursor: pointer; }
+    ul { list-style: none; padding-left: 0; }
+    li { margin: 4px 0; }
   </style>
 
   <script type="module">
@@ -84,9 +81,11 @@
       push,
       onValue,
       remove,
-      set
+      set,
+      runTransaction
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+    // ---------------------- Firebase ----------------------
     const firebaseConfig = {
       apiKey: "AIzaSyByg8FeU-3woVufxnLoEMhi4t7-CRlS6BI",
       authDomain: "participation-4f85e.firebaseapp.com",
@@ -102,10 +101,92 @@
     const db = getDatabase(app);
 
     let submissions = [];
-    let submissionMap = {};
 
+    // ---------------------- KST 유틸 ----------------------
+    const HOUR_MS = 3600 * 1000;
+    const DAY_MS  = 24 * HOUR_MS;
+    const KST_OFFSET_MS = 9 * HOUR_MS;
+
+    // "KST 기준 날짜번호" (epoch day count)
+    function kstDayNumber(nowUtcMs = Date.now()) {
+      return Math.floor((nowUtcMs + KST_OFFSET_MS) / DAY_MS);
+    }
+
+    // KST 기준 요일 (0:일 ~ 6:토)
+    function kstWeekday(nowUtcMs = Date.now()) {
+      const kst = new Date(nowUtcMs + KST_OFFSET_MS);
+      return kst.getUTCDay();
+    }
+
+    // dayNumber -> {month, day} (KST 기준)
+    function dayNumberToKstMD(dayNum) {
+      // KST midnight epoch(UTC) = dayNum*DAY_MS - 9h
+      const utcMs = dayNum * DAY_MS - KST_OFFSET_MS;
+      const kst = new Date(utcMs + KST_OFFSET_MS);
+      return { month: kst.getUTCMonth() + 1, day: kst.getUTCDate() };
+    }
+
+    // 이번 주 월요일(dayNumber) 구하기 (KST 기준)
+    function getThisWeekMondayDayNum(nowUtcMs = Date.now()) {
+      const dn = kstDayNumber(nowUtcMs);
+      const wd = kstWeekday(nowUtcMs); // 0 Sun .. 6 Sat
+      const monIndex = (wd + 6) % 7;   // Mon=0, Tue=1, ... Sun=6
+      return dn - monIndex;
+    }
+
+    // 이번 주 화요일 00:00(KST)의 epoch(UTC ms) + resetKey(화요일 dayNumber)
+    function getThisWeekTuesdayReset(nowUtcMs = Date.now()) {
+      const mondayDn = getThisWeekMondayDayNum(nowUtcMs);
+      const tuesdayDn = mondayDn + 1;
+      const resetUtcMs = (tuesdayDn * DAY_MS) - KST_OFFSET_MS; // Tue 00:00 KST
+      return { resetUtcMs, resetKey: String(tuesdayDn) };
+    }
+
+    // 타이틀에 표시할 "월요일 날짜" 결정:
+    // - 월요일(화요일 00시 전)에는 이번 주 월요일
+    // - 화요일 00시 이후에는 다음 주 월요일
+    function getTitleMondayDayNum(nowUtcMs = Date.now()) {
+      const mondayDn = getThisWeekMondayDayNum(nowUtcMs);
+      const { resetUtcMs } = getThisWeekTuesdayReset(nowUtcMs);
+      return (nowUtcMs < resetUtcMs) ? mondayDn : (mondayDn + 7);
+    }
+
+    function updateTitle() {
+      const mondayDn = getTitleMondayDayNum(Date.now());
+      const md = dayNumberToKstMD(mondayDn);
+      const h1 = document.getElementById("pageTitle");
+      h1.textContent = `🐹${md.month}월${md.day}일 커염 길드 레이드 신청🐹`;
+      document.title = `${md.month}월${md.day}일 커염 레이드 신청`;
+    }
+
+    // ---------------------- 매주 화요일 00시 초기화 ----------------------
+    async function ensureWeeklyReset() {
+      const now = Date.now();
+      const { resetUtcMs, resetKey } = getThisWeekTuesdayReset(now);
+
+      // 아직 화요일 00시(KST)가 안 됐으면 아무 것도 안 함
+      if (now < resetUtcMs) return;
+
+      const metaRef = ref(db, "meta/lastResetKey");
+
+      // 트랜잭션으로 "이번 주 resetKey"를 최초 1회만 갱신
+      const txResult = await runTransaction(metaRef, (current) => {
+        if (current === resetKey) return; // 이미 초기화함
+        return resetKey; // 이번 주 초기화 "선점"
+      });
+
+      // 내가 선점(커밋)한 경우에만 실제 삭제 실행
+      if (txResult.committed) {
+        // submissions 전체 삭제
+        await remove(ref(db, "submissions"));
+      }
+    }
+
+    // ---------------------- 입력/제출 ----------------------
     function normalizePercent(value) {
-      return value.includes("%") ? value : value + "%";
+      const v = String(value ?? "").trim();
+      if (!v) return "";
+      return v.includes("%") ? v : (v + "%");
     }
 
     window.toggleEtcInput = () => {
@@ -114,7 +195,10 @@
       input.style.display = check.checked ? "block" : "none";
     };
 
-    window.submitForm = () => {
+    window.submitForm = async () => {
+      // 제출 직전에 혹시 화요일이 지났으면 먼저 초기화
+      await ensureWeeklyReset();
+
       const nickname = document.getElementById("nickname").value.trim();
       const percentInput = document.getElementById("percent").value.trim();
 
@@ -143,7 +227,7 @@
         percent: normalizePercent(percentInput)
       };
 
-      push(ref(db, 'submissions'), submission);
+      push(ref(db, "submissions"), submission);
 
       alert("신청 완료!");
 
@@ -154,8 +238,12 @@
       toggleEtcInput();
     };
 
-    window.showCredits = () => {
-      const submissionsRef = ref(db, 'submissions');
+    // ---------------------- 명단 보기 ----------------------
+    window.showCredits = async () => {
+      // 화면 전환 전에 초기화 체크
+      await ensureWeeklyReset();
+
+      const submissionsRef = ref(db, "submissions");
       onValue(submissionsRef, (snapshot) => {
         submissions = [];
         snapshot.forEach((childSnapshot) => {
@@ -165,52 +253,66 @@
         document.getElementById("mainForm").style.display = "none";
         document.getElementById("creditScreen").style.display = "block";
 
-        const creditText = document.getElementById("creditText");
-
-        if (submissions.length === 0) {
-          creditText.innerHTML = "<p>명단이 없습니다.</p>";
-          return;
-        }
-
-        const groups = {};
-        submissions.forEach(item => {
-          if (!groups[item.group]) groups[item.group] = [];
-          groups[item.group].push(item);
-        });
-
-        let html = `<p>현재 참여한 인원 <span style="color:red;font-size:1.3em">${submissions.length}</span>명</p>`;
-
-        Object.entries(groups).forEach(([group, list]) => {
-          html += `<details>
-                     <summary>${group} / ${list.length}</summary>
-                     <ul>${list.map(p => `<li>${p.nickname} / ${p.percent}</li>`).join("")}</ul>
-                   </details>`;
-        });
-
-        creditText.innerHTML = html;
+        renderCredits();
       });
     };
+
+    function renderCredits() {
+      const creditText = document.getElementById("creditText");
+
+      if (submissions.length === 0) {
+        creditText.innerHTML = "<p>명단이 없습니다.</p>";
+        return;
+      }
+
+      const groups = {};
+      submissions.forEach(item => {
+        if (!groups[item.group]) groups[item.group] = [];
+        groups[item.group].push(item);
+      });
+
+      let html = `<p>현재 참여한 인원 <span style="color:red;font-size:1.3em">${submissions.length}</span>명</p>`;
+
+      Object.entries(groups).forEach(([group, list]) => {
+        html += `<details>
+                   <summary>${group} / ${list.length}</summary>
+                   <ul>${list.map(p => `<li>${p.nickname} / ${p.percent}</li>`).join("")}</ul>
+                 </details>`;
+      });
+
+      creditText.innerHTML = html;
+    }
 
     window.goBack = () => {
       document.getElementById("mainForm").style.display = "block";
       document.getElementById("creditScreen").style.display = "none";
     };
+
+    // ---------------------- 시작 시 동작 ----------------------
+    (async function boot() {
+      updateTitle();
+      await ensureWeeklyReset();
+      updateTitle(); // 초기화 후 타이틀도 즉시 반영
+
+      // 1분마다 타이틀/초기화 체크 (화요일 00시 지나면 자동 반영)
+      setInterval(async () => {
+        updateTitle();
+        await ensureWeeklyReset();
+      }, 60 * 1000);
+    })();
   </script>
 </head>
 
 <body>
 
-<h1>🐹커염 길드 레이드 신청🐹</h1>
+<h1 id="pageTitle">🐹커염 길드 레이드 신청🐹</h1>
 
 <div class="container" id="mainForm">
-
   <strong>참여 가능 시간 (복수 선택 가능)</strong>
   <div class="checkbox-group" style="margin-top:8px;">
     <label><input type="checkbox" name="time" value="9시"> 9시</label>
     <label><input type="checkbox" name="time" value="9시반"> 9시 반</label>
-    <label>
-      <input type="checkbox" id="etcTimeCheck" onchange="toggleEtcInput()"> 기타
-    </label>
+    <label><input type="checkbox" id="etcTimeCheck" onchange="toggleEtcInput()"> 기타</label>
   </div>
 
   <div id="etcTimeInput" style="display:none;">
@@ -222,7 +324,6 @@
 
   <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
   <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
-
 </div>
 
 <div class="container" id="creditScreen" style="display:none;">
