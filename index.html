@@ -239,7 +239,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding-right: 38px; /* 삭제 버튼 공간 */
+      padding-right: 38px;
     }
     .member-details summary::-webkit-details-marker{ display:none; }
 
@@ -289,6 +289,23 @@
       margin: 0 0 10px;
       text-align: left;
     }
+
+    /* ✅ 입력 행(row): 닉네임/클래스 + 전투력 */
+    .entry-row{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 8px 0;
+    }
+    .entry-row input[type="text"]{
+      margin: 0;
+    }
+    .entry-row .col-left{ flex: 1 1 auto; }
+    .entry-row .col-right{ flex: 0 0 120px; }
+    @media (max-width: 420px){
+      .entry-row{ flex-direction: column; align-items: stretch; }
+      .entry-row .col-right{ flex: 1 1 auto; }
+    }
   </style>
 
   <script type="module">
@@ -299,7 +316,9 @@
       push,
       onValue,
       remove,
-      runTransaction
+      runTransaction,
+      get,
+      update
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
@@ -377,12 +396,27 @@
       }
     }
 
+    // ---------- 공통 유틸 ----------
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // 전투력 % 제거 + 숫자 파싱
     function normalizePower(value) {
       return String(value ?? "").replace(/%/g, "").trim();
     }
-    function displayPower(value) {
-      return String(value ?? "").replace(/%/g, "").trim();
+    function powerToNumber(value) {
+      const v = normalizePower(value);
+      const n = Number(v);
+      return Number.isFinite(n) ? n : -Infinity;
     }
+
+    // 참여 신청 닉네임/클래스 보정
     function normalizeNickClass(value) {
       const raw = String(value ?? "").trim();
       if (!raw) return "";
@@ -398,11 +432,57 @@
       return raw;
     }
 
+    // 길드원 entries: 옛 데이터(string)도 object로 변환
+    // object 형태: { nickClass: "귀염/화술", power: "6.0" }
+    function normalizeGuildEntry(entry) {
+      if (!entry) return null;
+
+      // 이미 객체면
+      if (typeof entry === "object") {
+        const nickClass = normalizeNickClass(entry.nickClass ?? entry.nickname ?? "");
+        const power = normalizePower(entry.power ?? entry.percent ?? entry.p ?? "");
+        if (!nickClass && !power) return null;
+        return { nickClass, power };
+      }
+
+      // 문자열(예: abc/화술/6.0) 처리
+      const s = String(entry).trim();
+      if (!s) return null;
+
+      // 마지막 / 뒤를 전투력으로 간주
+      const parts = s.split("/").map(x => x.trim()).filter(Boolean);
+      if (parts.length >= 3) {
+        const power = normalizePower(parts[parts.length - 1]);
+        const nickClass = normalizeNickClass(parts.slice(0, parts.length - 1).join("/"));
+        return { nickClass, power };
+      }
+
+      // "귀염/화술 6.0" 같이 들어온 경우
+      const m = s.match(/(.+)\s+([0-9]+(\.[0-9]+)?)$/);
+      if (m) {
+        return { nickClass: normalizeNickClass(m[1]), power: normalizePower(m[2]) };
+      }
+
+      // 그 외: power만 없거나 형식이 애매하면 nickClass로만 저장
+      return { nickClass: normalizeNickClass(s), power: "" };
+    }
+
+    function getMaxPower(entries) {
+      let max = -Infinity;
+      for (const e of entries) {
+        const n = powerToNumber(e.power);
+        if (n > max) max = n;
+      }
+      return max;
+    }
+
+    // 화면 전환
     function showOnly(screenId) {
       const ids = ["mainForm", "creditScreen", "guildScreen", "guildFormScreen"];
       ids.forEach(id => (document.getElementById(id).style.display = (id === screenId ? "block" : "none")));
     }
 
+    // 체크박스 기타 입력 토글
     window.toggleEtcInput = () => {
       const check = document.getElementById("etcTimeCheck");
       const input = document.getElementById("etcTimeInput");
@@ -491,11 +571,11 @@
 
       Object.entries(groups).forEach(([group, list]) => {
         html += `<details>
-                   <summary>${group} / ${list.length}명</summary>
+                   <summary>${escapeHtml(group)} / ${list.length}명</summary>
                    <ul>
                      ${list.map(p => `
                        <li class="credit-item">
-                         <span>${p.nickname} / ${displayPower(p.percent)}</span>
+                         <span>${escapeHtml(p.nickname)} / ${escapeHtml(normalizePower(p.percent))}</span>
                          <button class="del-btn" title="삭제" onclick="deleteEntryPublic('${p.id}')">×</button>
                        </li>
                      `).join("")}
@@ -522,7 +602,7 @@
       });
     };
 
-    // ✅ 길드원도 누구나 삭제
+    // 길드원 삭제(누구나)
     window.deleteGuildMemberPublic = async (id) => {
       if (!id) return;
       if (!confirm("해당 길드원 정보를 삭제할까요?")) return;
@@ -537,33 +617,56 @@
         return;
       }
 
-      const sorted = [...guildMembers].sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
-
-      let html = `<p>현재 등록된 길드원 <span style="color:red;font-size:1.3em">${sorted.length}</span>명</p>`;
-
-      sorted.forEach(m => {
+      // members 정규화(옛 entries 문자열도 대응) + 전투력 정렬
+      const normalizedMembers = guildMembers.map(m => {
         const name = (m.displayName || "").trim() || "이름없음";
+        let entriesRaw = [];
+        if (Array.isArray(m.entries)) entriesRaw = m.entries;
+        else if (m.entries && typeof m.entries === "object") entriesRaw = Object.values(m.entries);
 
-        let entries = [];
-        if (Array.isArray(m.entries)) entries = m.entries;
-        else if (m.entries && typeof m.entries === "object") entries = Object.values(m.entries);
+        const entries = entriesRaw
+          .map(normalizeGuildEntry)
+          .filter(Boolean)
+          .map(e => ({ nickClass: e.nickClass, power: normalizePower(e.power) }));
 
-        entries = entries.map(e => String(e ?? "").trim()).filter(Boolean);
-        if (!entries.length) entries = ["(정보 없음)"];
+        // entries 전투력 내림차순
+        entries.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
+
+        return {
+          id: m.id,
+          displayName: name,
+          entries,
+          maxPower: getMaxPower(entries),
+          createdAt: m.createdAt || 0
+        };
+      });
+
+      // ✅ 길드원 카드도 “최고 전투력” 내림차순(동점이면 최신)
+      normalizedMembers.sort((a,b) => {
+        const diff = (b.maxPower - a.maxPower);
+        if (diff !== 0) return diff;
+        return (b.createdAt - a.createdAt);
+      });
+
+      let html = `<p>현재 등록된 길드원 <span style="color:red;font-size:1.3em">${normalizedMembers.length}</span>명</p>`;
+
+      normalizedMembers.forEach(m => {
+        const entries = m.entries.length ? m.entries : [{ nickClass: "(정보 없음)", power: "" }];
 
         html += `
           <div class="member-card">
             <button class="member-del" title="삭제" onclick="deleteGuildMemberPublic('${m.id}')">×</button>
 
-            <!-- ✅ 닉네임 아래 정보는 기본 접힘 -->
             <details class="member-details">
               <summary>
-                <span class="member-name">🐹 ${escapeHtml(name)}</span>
+                <span class="member-name">🐹 ${escapeHtml(m.displayName)}</span>
               </summary>
 
               <div class="member-lines">
-                ${entries.map(line => `
-                  <div class="member-line">${escapeHtml(stripPercentFromLine(line))}</div>
+                ${entries.map(e => `
+                  <div class="member-line">
+                    ${escapeHtml(e.nickClass)}${e.power ? " / " + escapeHtml(normalizePower(e.power)) : ""}
+                  </div>
                 `).join("")}
               </div>
             </details>
@@ -574,7 +677,7 @@
       box.innerHTML = html;
     }
 
-    // ---------------- 길드원 입력 화면 ----------------
+    // ---------------- 자기 정보 적기 ----------------
     window.openGuildForm = () => {
       document.getElementById("guildDisplayName").value = "";
       const holder = document.getElementById("entryFields");
@@ -586,50 +689,112 @@
     window.addEntryField = () => addEntryField();
     function addEntryField() {
       const holder = document.getElementById("entryFields");
-      const input = document.createElement("input");
-      input.type = "text";
-      input.className = "guildEntry";
-      input.placeholder = `아이디/클래스/전투력 (예: abc/화술/6.0)`;
-      holder.appendChild(input);
+
+      const row = document.createElement("div");
+      row.className = "entry-row";
+
+      const left = document.createElement("div");
+      left.className = "col-left";
+      const right = document.createElement("div");
+      right.className = "col-right";
+
+      const nickInput = document.createElement("input");
+      nickInput.type = "text";
+      nickInput.className = "guildNickClass";
+      nickInput.placeholder = "닉네임/클래스 (예: 귀염/화술 또는 귀염 화술)";
+
+      const powerInput = document.createElement("input");
+      powerInput.type = "text";
+      powerInput.className = "guildPower";
+      powerInput.placeholder = "전투력 (예: 6.0)";
+
+      left.appendChild(nickInput);
+      right.appendChild(powerInput);
+      row.appendChild(left);
+      row.appendChild(right);
+
+      holder.appendChild(row);
     }
 
+    // ✅ 닉네임(불리고 싶은 닉네임) 중복이면: 새로 생성 X, 기존 항목에 추가
     window.submitGuildInfo = async () => {
       const displayName = document.getElementById("guildDisplayName").value.trim();
-      const entryInputs = Array.from(document.querySelectorAll(".guildEntry"));
-
-      let entries = entryInputs
-        .map(i => i.value.trim())
-        .filter(Boolean)
-        .map(line => stripPercentFromLine(line));
-
       if (!displayName) { alert("불리고 싶은 닉네임을 입력해주세요."); return; }
-      if (!entries.length) { alert("아이디/클래스/전투력 정보를 1개 이상 입력해주세요."); return; }
 
-      await push(ref(db, "guildMembers"), {
-        displayName,
-        entries,
-        createdAt: Date.now()
+      const rows = Array.from(document.querySelectorAll("#entryFields .entry-row"));
+      const newEntries = rows.map(r => {
+        const nickClassRaw = r.querySelector(".guildNickClass")?.value ?? "";
+        const powerRaw = r.querySelector(".guildPower")?.value ?? "";
+        const nickClass = normalizeNickClass(nickClassRaw);
+        const power = normalizePower(powerRaw);
+        if (!nickClass && !power) return null;
+        if (!nickClass || !power) return null; // 둘 다 입력 요구
+        return { nickClass, power };
+      }).filter(Boolean);
+
+      if (!newEntries.length) {
+        alert("닉네임/클래스와 전투력을 1개 이상 입력해주세요.");
+        return;
+      }
+
+      // guildMembers 전체를 1회 읽어서 displayName 매칭 찾기 (trim/소문자 기준)
+      const snap = await get(ref(db, "guildMembers"));
+      let foundId = null;
+      let foundVal = null;
+
+      if (snap.exists()) {
+        snap.forEach(child => {
+          const v = child.val() || {};
+          const name = String(v.displayName || "").trim();
+          if (name && name.toLowerCase() === displayName.toLowerCase()) {
+            foundId = child.key;
+            foundVal = v;
+          }
+        });
+      }
+
+      if (!foundId) {
+        // 새로 생성
+        await push(ref(db, "guildMembers"), {
+          displayName,
+          entries: newEntries,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+        alert("입력 완료!");
+        showGuildList();
+        return;
+      }
+
+      // 기존에 추가(누적)
+      let existingRaw = [];
+      if (Array.isArray(foundVal.entries)) existingRaw = foundVal.entries;
+      else if (foundVal.entries && typeof foundVal.entries === "object") existingRaw = Object.values(foundVal.entries);
+
+      const existingEntries = existingRaw.map(normalizeGuildEntry).filter(Boolean).map(e => ({
+        nickClass: normalizeNickClass(e.nickClass),
+        power: normalizePower(e.power)
+      }));
+
+      const merged = [...existingEntries, ...newEntries];
+
+      // 전투력 내림차순 정렬해서 저장
+      merged.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
+
+      await update(ref(db, `guildMembers/${foundId}`), {
+        entries: merged,
+        updatedAt: Date.now()
       });
 
-      alert("입력 완료!");
+      alert("기존 닉네임에 정보가 추가되었습니다!");
       showGuildList();
     };
 
+    // 뒤로가기
     window.goBackToMain = () => showOnly("mainForm");
     window.goBackToGuild = () => showOnly("guildScreen");
 
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-    function stripPercentFromLine(line) {
-      return String(line).replace(/%/g, "").trim();
-    }
-
+    // ---------------- 시작 ----------------
     (async function boot() {
       updateTitle();
       await ensureWeeklyReset();
@@ -713,7 +878,7 @@
     <div style="font-weight:800; margin-top:6px;">- 불리고 싶은 닉네임</div>
     <input type="text" id="guildDisplayName" placeholder="예: 귀염이">
 
-    <div style="font-weight:800; margin-top:10px;">- 아이디/클래스/전투력</div>
+    <div style="font-weight:800; margin-top:10px;">- 닉네임/클래스 & 전투력</div>
     <div id="entryFields"></div>
 
     <div class="add-row">
