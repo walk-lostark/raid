@@ -253,11 +253,35 @@
       border-top: 1px dashed rgba(0,0,0,0.12);
       padding-top: 8px;
     }
-    .member-line{
-      padding: 6px 0;
-      border-bottom: 1px dashed rgba(0,0,0,0.12);
+
+    /* ✅ 길드원 항목(한 줄) 수정/삭제 UI */
+    .guild-entry-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:6px 0;
+      border-bottom:1px dashed rgba(0,0,0,0.12);
     }
-    .member-line:last-child{ border-bottom: none; }
+    .guild-entry-row:last-child{ border-bottom:none; }
+
+    .guild-entry-actions{
+      display:flex;
+      gap:6px;
+      flex:0 0 auto;
+    }
+
+    .small-btn{
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:900;
+      padding:6px 10px;
+      background: rgba(0,0,0,0.06);
+      white-space: nowrap;
+    }
+    .small-btn:hover{ background: rgba(63,169,245,0.18); }
+    .small-btn.danger:hover{ background: rgba(255,0,0,0.12); }
 
     /* 자기 정보 적기 */
     .add-row{
@@ -378,6 +402,7 @@
       document.title = `${md.month}월${md.day}일 커염 레이드 신청`;
     }
 
+    // ✅ 매주 화요일 00시: 참여 신청(submissions)만 초기화 / 길드원(guildMembers)은 유지
     async function ensureWeeklyReset() {
       const now = Date.now();
       const { resetUtcMs, resetKey } = getThisWeekTuesdayReset(now);
@@ -456,7 +481,7 @@
       return raw;
     }
 
-    // 길드원 entries 정규화
+    // 길드원 entries 정규화(레거시 문자열도 대응)
     function normalizeGuildEntry(entry) {
       if (!entry) return null;
 
@@ -490,6 +515,25 @@
         if (n > max) max = n;
       }
       return max;
+    }
+
+    // ✅ 길드원 항목 병합: nickClass 중복이면 "새 값으로 덮어쓰기"
+    function mergeEntriesOverwrite(existingEntries, newEntries) {
+      const keyOf = (s) => String(s ?? "").trim().toLowerCase();
+      const map = new Map();
+
+      for (const e of existingEntries) {
+        if (!e?.nickClass || !e?.power) continue;
+        map.set(keyOf(e.nickClass), { nickClass: e.nickClass, power: normalizePower(e.power) });
+      }
+      for (const e of newEntries) {
+        if (!e?.nickClass || !e?.power) continue;
+        map.set(keyOf(e.nickClass), { nickClass: e.nickClass, power: normalizePower(e.power) }); // ✅ overwrite
+      }
+
+      const merged = Array.from(map.values());
+      merged.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
+      return merged;
     }
 
     // 화면 전환
@@ -540,11 +584,11 @@
         nickname,
         group: selectedTimes.join(", "),
         percent: power,
-        pwHash,                 // ✅ 해시 저장
+        pwHash,
         createdAt: Date.now()
       });
 
-      alert("신청 완료! (삭제/수정 시 비밀번호가 필요해요)");
+      alert("신청 완료! (삭제 시 비밀번호가 필요해요)");
 
       document.getElementById("nickname").value = "";
       document.getElementById("percent").value = "";
@@ -582,7 +626,6 @@
         if (!newPw) return;
         const newHash = await sha256Hex(newPw);
         await update(ref(db, `submissions/${id}`), { pwHash: newHash });
-        // 이제 삭제 진행
         await remove(ref(db, `submissions/${id}`));
         return;
       }
@@ -649,14 +692,13 @@
       });
     };
 
-    // ✅ 길드원 삭제: 비번 필요
+    // ✅ 길드원 카드(전체) 삭제: 비번 필요
     window.deleteGuildMemberPublic = async (id) => {
       const item = guildMembers.find(m => m.id === id);
       if (!item) return;
 
-      if (!confirm("해당 길드원 정보를 삭제할까요?")) return;
+      if (!confirm("해당 길드원 정보를(전체) 삭제할까요?")) return;
 
-      // 레거시(비번 없음)라면 이번에 비번 설정 후 삭제 허용
       if (!item.pwHash) {
         const newPw = await promptNewPassword();
         if (!newPw) return;
@@ -678,6 +720,117 @@
       await remove(ref(db, `guildMembers/${id}`));
     };
 
+    // ✅ 길드원 항목(한 줄) 삭제
+    window.deleteGuildEntry = async (memberId, entryIndex) => {
+      const snap = await get(ref(db, `guildMembers/${memberId}`));
+      if (!snap.exists()) return;
+
+      const member = snap.val();
+
+      let entriesRaw = [];
+      if (Array.isArray(member.entries)) entriesRaw = member.entries;
+      else if (member.entries && typeof member.entries === "object") entriesRaw = Object.values(member.entries);
+
+      let entries = entriesRaw
+        .map(normalizeGuildEntry)
+        .filter(Boolean)
+        .map(e => ({ nickClass: normalizeNickClass(e.nickClass), power: normalizePower(e.power) }))
+        .filter(e => e.nickClass && e.power);
+
+      if (entryIndex < 0 || entryIndex >= entries.length) return;
+
+      if (!confirm("이 항목을 삭제할까요?")) return;
+
+      // 비번 검증(레거시면 설정)
+      if (!member.pwHash) {
+        const newPw = await promptNewPassword();
+        if (!newPw) return;
+        const newHash = await sha256Hex(newPw);
+        await update(ref(db, `guildMembers/${memberId}`), { pwHash: newHash });
+        member.pwHash = newHash;
+      } else {
+        const pw = await promptPasswordVerify("삭제하려면 비밀번호를 입력하세요:");
+        if (!pw) return;
+        const hash = await sha256Hex(pw);
+        if (hash !== member.pwHash) {
+          alert("비밀번호가 틀렸습니다.");
+          return;
+        }
+      }
+
+      entries.splice(entryIndex, 1);
+      entries.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
+
+      await update(ref(db, `guildMembers/${memberId}`), {
+        entries,
+        updatedAt: Date.now()
+      });
+    };
+
+    // ✅ 길드원 항목(한 줄) 수정 (전투력 변경 가능)
+    window.editGuildEntry = async (memberId, entryIndex) => {
+      const snap = await get(ref(db, `guildMembers/${memberId}`));
+      if (!snap.exists()) return;
+
+      const member = snap.val();
+
+      let entriesRaw = [];
+      if (Array.isArray(member.entries)) entriesRaw = member.entries;
+      else if (member.entries && typeof member.entries === "object") entriesRaw = Object.values(member.entries);
+
+      let entries = entriesRaw
+        .map(normalizeGuildEntry)
+        .filter(Boolean)
+        .map(e => ({ nickClass: normalizeNickClass(e.nickClass), power: normalizePower(e.power) }))
+        .filter(e => e.nickClass && e.power);
+
+      if (entryIndex < 0 || entryIndex >= entries.length) return;
+
+      // 비번 검증(레거시면 설정)
+      if (!member.pwHash) {
+        const newPw = await promptNewPassword();
+        if (!newPw) return;
+        const newHash = await sha256Hex(newPw);
+        await update(ref(db, `guildMembers/${memberId}`), { pwHash: newHash });
+        member.pwHash = newHash;
+      } else {
+        const pw = await promptPasswordVerify("수정하려면 비밀번호를 입력하세요:");
+        if (!pw) return;
+        const hash = await sha256Hex(pw);
+        if (hash !== member.pwHash) {
+          alert("비밀번호가 틀렸습니다.");
+          return;
+        }
+      }
+
+      const cur = entries[entryIndex];
+
+      const newNickClassRaw = prompt("닉네임/클래스 수정:", cur.nickClass);
+      if (!newNickClassRaw) return;
+      const newNickClass = normalizeNickClass(newNickClassRaw);
+
+      const newPowerRaw = prompt("전투력 수정:", cur.power);
+      if (!newPowerRaw) return;
+      const newPower = normalizePower(newPowerRaw);
+
+      // ✅ nickClass 중복이면 덮어쓰기 정책
+      const keyOf = (s) => String(s ?? "").trim().toLowerCase();
+      const targetKey = keyOf(newNickClass);
+
+      // 현재 항목 제거
+      entries.splice(entryIndex, 1);
+      // 동일 key 제거 (덮어쓰기)
+      entries = entries.filter(e => keyOf(e.nickClass) !== targetKey);
+
+      entries.push({ nickClass: newNickClass, power: newPower });
+      entries.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
+
+      await update(ref(db, `guildMembers/${memberId}`), {
+        entries,
+        updatedAt: Date.now()
+      });
+    };
+
     function renderGuildList() {
       const box = document.getElementById("guildListBox");
 
@@ -696,7 +849,8 @@
         const entries = entriesRaw
           .map(normalizeGuildEntry)
           .filter(Boolean)
-          .map(e => ({ nickClass: e.nickClass, power: normalizePower(e.power) }));
+          .map(e => ({ nickClass: normalizeNickClass(e.nickClass), power: normalizePower(e.power) }))
+          .filter(e => e.nickClass && e.power);
 
         entries.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
 
@@ -722,7 +876,7 @@
 
         html += `
           <div class="member-card">
-            <button class="member-del" title="삭제" onclick="deleteGuildMemberPublic('${m.id}')">×</button>
+            <button class="member-del" title="전체 삭제" onclick="deleteGuildMemberPublic('${m.id}')">×</button>
 
             <details class="member-details">
               <summary>
@@ -730,9 +884,13 @@
               </summary>
 
               <div class="member-lines">
-                ${entries.map(e => `
-                  <div class="member-line">
-                    ${escapeHtml(e.nickClass)}${e.power ? " / " + escapeHtml(normalizePower(e.power)) : ""}
+                ${entries.map((e, idx) => `
+                  <div class="guild-entry-row">
+                    <div>${escapeHtml(e.nickClass)}${e.power ? " / " + escapeHtml(normalizePower(e.power)) : ""}</div>
+                    <div class="guild-entry-actions">
+                      <button class="small-btn" onclick="editGuildEntry('${m.id}', ${idx})">수정</button>
+                      <button class="small-btn danger" onclick="deleteGuildEntry('${m.id}', ${idx})">삭제</button>
+                    </div>
                   </div>
                 `).join("")}
               </div>
@@ -783,8 +941,10 @@
       holder.appendChild(row);
     }
 
-    // ✅ 길드원 저장: 닉네임 중복이면 "기존에 누적 추가"
-    // ✅ 누적 추가/삭제 등 수정은 비번 검증 필요
+    // ✅ 길드원 저장:
+    // - displayName(불리고 싶은 닉네임) 동일하면 기존 카드 업데이트
+    // - nickClass 중복이면 덮어쓰기(업데이트)
+    // - 수정/삭제/기존 카드 업데이트는 비번 필요
     window.submitGuildInfo = async () => {
       const displayName = document.getElementById("guildDisplayName").value.trim();
       if (!displayName) { alert("불리고 싶은 닉네임을 입력해주세요."); return; }
@@ -822,14 +982,16 @@
       }
 
       if (!foundId) {
-        // ✅ 새로 생성: 비번 설정
+        // 새로 생성: 비번 설정
         const pw = await promptNewPassword();
         if (!pw) return;
         const pwHash = await sha256Hex(pw);
 
+        const sortedNew = [...newEntries].sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
+
         await push(ref(db, "guildMembers"), {
           displayName,
-          entries: newEntries.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power)),
+          entries: sortedNew,
           pwHash,
           createdAt: Date.now(),
           updatedAt: Date.now()
@@ -840,18 +1002,17 @@
         return;
       }
 
-      // ✅ 기존에 누적 추가: 비번 검증
+      // 기존 업데이트: 비번 검증 (레거시면 이번에 설정)
       const existingPwHash = foundVal.pwHash;
 
       if (!existingPwHash) {
-        // 레거시: 이번에 비번 설정 후 수정 허용
         const newPw = await promptNewPassword();
         if (!newPw) return;
         const newHash = await sha256Hex(newPw);
         await update(ref(db, `guildMembers/${foundId}`), { pwHash: newHash });
         foundVal.pwHash = newHash;
       } else {
-        const pw = await promptPasswordVerify("기존 닉네임에 추가하려면 비밀번호를 입력하세요:");
+        const pw = await promptPasswordVerify("기존 닉네임에 반영하려면 비밀번호를 입력하세요:");
         if (!pw) return;
         const hash = await sha256Hex(pw);
         if (hash !== existingPwHash) {
@@ -860,6 +1021,7 @@
         }
       }
 
+      // 기존 entries 로드/정규화
       let existingRaw = [];
       if (Array.isArray(foundVal.entries)) existingRaw = foundVal.entries;
       else if (foundVal.entries && typeof foundVal.entries === "object") existingRaw = Object.values(foundVal.entries);
@@ -870,15 +1032,15 @@
         .map(e => ({ nickClass: normalizeNickClass(e.nickClass), power: normalizePower(e.power) }))
         .filter(e => e.nickClass && e.power);
 
-      const merged = [...existingEntries, ...newEntries];
-      merged.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
+      // ✅ nickClass 중복이면 덮어쓰기
+      const merged = mergeEntriesOverwrite(existingEntries, newEntries);
 
       await update(ref(db, `guildMembers/${foundId}`), {
         entries: merged,
         updatedAt: Date.now()
       });
 
-      alert("기존 닉네임에 정보가 추가되었습니다!");
+      alert("기존 닉네임에 정보가 반영되었습니다! (중복 닉/클은 덮어쓰기)");
       showGuildList();
     };
 
