@@ -115,6 +115,19 @@
       display: block;
     }
 
+    /* ✅ 섹션 제목(이미지처럼 예쁘게) */
+    .form-section-title{
+      font-weight: 900;
+      font-size: 1.02em;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      color: rgba(0,0,0,0.9);
+    }
+    .form-section-title::before{
+      content: " - ";
+      font-weight: 900;
+    }
+
     .page-title{
       font-size: 1.2em;
       font-weight: 900;
@@ -357,8 +370,6 @@
 
     let submissions = [];
     let guildMembers = [];
-
-    // ✅ 참여 수정 화면 상태
     let editingSubmissionId = null;
 
     // ----- KST 유틸 -----
@@ -508,6 +519,7 @@
       return max;
     }
 
+    // ✅ 길드원 항목 병합: nickClass 중복이면 "새 값으로 덮어쓰기"
     function mergeEntriesOverwrite(existingEntries, newEntries) {
       const keyOf = (s) => String(s ?? "").trim().toLowerCase();
       const map = new Map();
@@ -531,6 +543,7 @@
       ids.forEach(id => (document.getElementById(id).style.display = (id === screenId ? "block" : "none")));
     }
 
+    // 체크박스 기타 입력 토글
     window.toggleEtcInput = () => {
       const check = document.getElementById("etcTimeCheck");
       const input = document.getElementById("etcTimeInput");
@@ -601,6 +614,7 @@
       });
     };
 
+    // 참여 삭제(비번)
     window.deleteEntryPublic = async (id) => {
       const item = submissions.find(s => s.id === id);
       if (!item) return;
@@ -616,7 +630,6 @@
         return;
       }
 
-      const pw = document.getElementById("editSubPwTemp")?.value; // 혹시 남아있는 값 사용 X
       const pwPrompt = prompt("삭제하려면 비밀번호를 입력하세요:");
       if (!pwPrompt) return;
       const hash = await sha256Hex(pwPrompt);
@@ -629,7 +642,7 @@
       await remove(ref(db, `submissions/${id}`));
     };
 
-    // ✅ 예쁜 참여 수정 화면 열기
+    // 참여 수정 화면 열기
     window.openEditSubmission = (id) => {
       const item = submissions.find(s => s.id === id);
       if (!item) return;
@@ -649,14 +662,13 @@
       showOnly("creditScreen");
     };
 
-    // ✅ 참여 수정 저장 (비번 검증)
+    // 참여 수정 저장(비번)
     window.saveEditSubmission = async () => {
       if (!editingSubmissionId) return;
 
       const item = submissions.find(s => s.id === editingSubmissionId);
       if (!item) { alert("대상을 찾을 수 없어요."); return; }
 
-      // 레거시(비번 없음)면 먼저 설정하도록
       if (!item.pwHash) {
         const newPw = await promptNewPassword();
         if (!newPw) return;
@@ -748,6 +760,7 @@
       });
     };
 
+    // 길드원 전체 삭제(비번)
     window.deleteGuildMemberPublic = async (id) => {
       const item = guildMembers.find(m => m.id === id);
       if (!item) return;
@@ -775,6 +788,7 @@
       await remove(ref(db, `guildMembers/${id}`));
     };
 
+    // 길드원 항목 삭제(비번)
     window.deleteGuildEntry = async (memberId, entryIndex) => {
       const snap = await get(ref(db, `guildMembers/${memberId}`));
       if (!snap.exists()) return;
@@ -820,6 +834,7 @@
       });
     };
 
+    // 길드원 항목 수정(비번)
     window.editGuildEntry = async (memberId, entryIndex) => {
       const snap = await get(ref(db, `guildMembers/${memberId}`));
       if (!snap.exists()) return;
@@ -988,6 +1003,7 @@
       holder.appendChild(row);
     }
 
+    // 길드원 저장: displayName 동일이면 기존 업데이트 + nickClass 중복 덮어쓰기 + 비번
     window.submitGuildInfo = async () => {
       const displayName = document.getElementById("guildDisplayName").value.trim();
       if (!displayName) { alert("불리고 싶은 닉네임을 입력해주세요."); return; }
@@ -1082,9 +1098,11 @@
       showGuildList();
     };
 
+    // 뒤로가기
     window.goBackToMain = () => showOnly("mainForm");
     window.goBackToGuild = () => showOnly("guildScreen");
 
+    // ---------------- 시작 ----------------
     (async function boot() {
       updateTitle();
       await ensureWeeklyReset();
@@ -1129,7 +1147,11 @@
       <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
     </div>
 
+    <!-- ✅ 여기부터 “이미지처럼 예쁜 제목” 적용 -->
+    <div class="form-section-title">닉네임/클래스</div>
     <input type="text" id="nickname" placeholder="닉네임/클래스 (예: 귀염/화술 또는 귀염 화술)">
+
+    <div class="form-section-title">전투력</div>
     <input type="text" id="percent" placeholder="전투력 (예: 6.0)">
 
     <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
@@ -1146,7 +1168,7 @@
     <div id="creditText"></div>
   </div>
 
-  <!-- ✅ 참여 정보 수정 화면 (예쁘게) -->
+  <!-- 참여 정보 수정 화면 -->
   <div class="container" id="editSubmissionScreen" style="display:none;">
     <div class="top-left-actions">
       <button class="back-btn" onclick="cancelEditSubmission()">뒤로가기</button>
@@ -1156,16 +1178,16 @@
     <div class="page-title">참여 정보 수정</div>
     <div class="help-text">비밀번호를 입력해야 수정이 저장돼요.</div>
 
-    <div style="font-weight:800; margin-top:10px;">- 참여시간</div>
+    <div class="form-section-title">참여시간</div>
     <input type="text" id="editSubGroup" placeholder="예: 9시, 9시반, 10시">
 
-    <div style="font-weight:800; margin-top:10px;">- 닉네임/클래스</div>
+    <div class="form-section-title">닉네임/클래스</div>
     <input type="text" id="editSubNick" placeholder="예: 귀염/화술 (또는 귀염 화술)">
 
-    <div style="font-weight:800; margin-top:10px;">- 전투력</div>
+    <div class="form-section-title">전투력</div>
     <input type="text" id="editSubPower" placeholder="예: 6.0">
 
-    <div style="font-weight:800; margin-top:10px;">- 비밀번호</div>
+    <div class="form-section-title">비밀번호</div>
     <input type="password" id="editSubPw" placeholder="설정했던 비밀번호 입력">
 
     <button class="btn btn-save" onclick="saveEditSubmission()">저장하기</button>
@@ -1191,10 +1213,10 @@
 
     <div class="page-title">자기 정보 적기</div>
 
-    <div style="font-weight:800; margin-top:6px;">- 불리고 싶은 닉네임</div>
+    <div class="form-section-title">불리고 싶은 닉네임</div>
     <input type="text" id="guildDisplayName" placeholder="예: 귀염이">
 
-    <div style="font-weight:800; margin-top:10px;">- 닉네임/클래스 & 전투력</div>
+    <div class="form-section-title">닉네임/클래스 & 전투력</div>
     <div id="entryFields"></div>
 
     <div class="add-row">
@@ -1205,8 +1227,5 @@
     <button class="btn btn-submit" onclick="submitGuildInfo()">입력하기</button>
     <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
   </div>
-
-  <!-- dummy (삭제 함수에서 잔여 참조 방지용) -->
-  <input type="hidden" id="editSubPwTemp" value="">
 </body>
 </html>
