@@ -84,20 +84,30 @@
 
     .btn-submit { background-color: #28a745; color: white; }
     .btn-view   { background-color: #007bff; color: white; }
+    .btn-guild  { background-color: #6f42c1; color: white; } /* 길드원 명단 보기 */
+    .btn-gray   { background-color: #343a40; color: white; } /* 보조 */
 
-    .back-btn {
-      background-color: #3fa9f5;
+    .top-left-actions{
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 8px;
+      z-index: 2;
+    }
+
+    .back-btn, .mini-btn {
       color: white;
       border: none;
       padding: 7px 12px;
       border-radius: 10px;
       font-weight: 800;
       font-size: 0.95em;
-      position: absolute;
-      top: 10px;
-      left: 10px;
       cursor: pointer;
+      white-space: nowrap;
     }
+    .back-btn { background-color: #3fa9f5; }
+    .mini-btn { background-color: #ff9800; }
 
     .section-title{
       font-weight: 800;
@@ -176,7 +186,7 @@
     summary { font-weight: 800; cursor: pointer; }
     ul { list-style: none; padding-left: 0; margin: 10px 0 0; }
 
-    /* 명단 아이템 + 삭제 X 버튼 */
+    /* 참여 명단 아이템 + 삭제 X 버튼 */
     .credit-item{
       display: flex;
       align-items: center;
@@ -196,8 +206,57 @@
       font-weight: 900;
       background: rgba(0,0,0,0.06);
     }
-    .del-btn:hover{
-      background: rgba(255,0,0,0.12);
+    .del-btn:hover{ background: rgba(255,0,0,0.12); }
+
+    /* 길드원 명단 카드 */
+    .member-card{
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 14px;
+      padding: 12px 12px;
+      margin: 10px 0;
+      background: rgba(255,255,255,0.88);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    }
+    .member-name{
+      font-weight: 900;
+      margin-bottom: 6px;
+      font-size: 1.05em;
+    }
+    .member-line{
+      padding: 6px 0;
+      border-top: 1px dashed rgba(0,0,0,0.12);
+    }
+    .member-line:first-of-type{ border-top: none; }
+
+    /* 자기 정보 적기 - 추가 입력 UI */
+    .add-row{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 10px 0 4px;
+      color: rgba(0,0,0,0.7);
+      font-weight: 700;
+    }
+    .plus-btn{
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 1.4em;
+      font-weight: 900;
+      background: rgba(63,169,245,0.18);
+    }
+    .plus-btn:hover{
+      background: rgba(63,169,245,0.28);
+    }
+
+    .page-title{
+      font-size: 1.2em;
+      font-weight: 900;
+      margin: 0 0 10px;
+      text-align: left;
     }
   </style>
 
@@ -227,6 +286,7 @@
     const db = getDatabase(app);
 
     let submissions = [];
+    let guildMembers = [];
 
     // ----- KST 유틸 -----
     const HOUR_MS = 3600 * 1000;
@@ -291,13 +351,10 @@
       return String(value ?? "").replace(/%/g, "").trim();
     }
     function displayPower(value) {
-      // 혹시 기존 데이터에 %가 들어있어도 표시할 때 제거
       return String(value ?? "").replace(/%/g, "").trim();
     }
 
-    // ✅ 닉네임/클래스: '/'가 없으면 알아서 넣기
-    // - 공백/콤마/하이픈 등 구분자로 두 덩어리가 나오면 "닉/클래스"로 변환
-    // - 덩어리가 1개면(구분자 없음) 자동 삽입이 애매하니 그대로 둠
+    // ✅ 닉네임/클래스: '/'가 없으면 안전하게 보정
     function normalizeNickClass(value) {
       const raw = String(value ?? "").trim();
       if (!raw) return "";
@@ -308,28 +365,28 @@
         return raw;
       }
 
-      // 공백/콤마/하이픈/세로줄 등으로 나뉘는 경우만 자동 변환
       const parts = raw.split(/[,\-|｜|\s]+/).map(s => s.trim()).filter(Boolean);
       if (parts.length >= 2) {
         return `${parts[0]}/${parts.slice(1).join("")}`;
       }
 
-      // 구분자 자체가 없는 경우는 그대로
       return raw;
     }
 
+    // 화면 전환 유틸
+    function showOnly(screenId) {
+      const ids = ["mainForm", "creditScreen", "guildScreen", "guildFormScreen"];
+      ids.forEach(id => document.getElementById(id).style.display = (id === screenId ? "block" : "none"));
+    }
+
+    // 체크박스 기타 입력 토글
     window.toggleEtcInput = () => {
       const check = document.getElementById("etcTimeCheck");
       const input = document.getElementById("etcTimeInput");
       input.style.display = check.checked ? "block" : "none";
     };
 
-    window.deleteEntryPublic = async (id) => {
-      if (!id) return;
-      if (!confirm("해당 신청을 삭제할까요?")) return;
-      await remove(ref(db, `submissions/${id}`));
-    };
-
+    // ---------------- 참여 신청 ----------------
     window.submitForm = async () => {
       await ensureWeeklyReset();
 
@@ -375,6 +432,7 @@
       toggleEtcInput();
     };
 
+    // ---------------- 참여 명단 보기 ----------------
     window.showCredits = async () => {
       await ensureWeeklyReset();
 
@@ -385,10 +443,15 @@
           submissions.push({ id: childSnapshot.key, ...childSnapshot.val() });
         });
 
-        document.getElementById("mainForm").style.display = "none";
-        document.getElementById("creditScreen").style.display = "block";
+        showOnly("creditScreen");
         renderCredits();
-      });
+      }, { onlyOnce: false });
+    };
+
+    window.deleteEntryPublic = async (id) => {
+      if (!id) return;
+      if (!confirm("해당 신청을 삭제할까요?")) return;
+      await remove(ref(db, `submissions/${id}`));
     };
 
     function renderCredits() {
@@ -425,11 +488,139 @@
       creditText.innerHTML = html;
     }
 
-    window.goBack = () => {
-      document.getElementById("mainForm").style.display = "block";
-      document.getElementById("creditScreen").style.display = "none";
+    // ---------------- 길드원 명단 보기 ----------------
+    window.showGuildList = async () => {
+      await ensureWeeklyReset();
+
+      const guildRef = ref(db, "guildMembers");
+      onValue(guildRef, (snapshot) => {
+        guildMembers = [];
+        snapshot.forEach((childSnapshot) => {
+          guildMembers.push({ id: childSnapshot.key, ...childSnapshot.val() });
+        });
+
+        showOnly("guildScreen");
+        renderGuildList();
+      }, { onlyOnce: false });
     };
 
+    function renderGuildList() {
+      const box = document.getElementById("guildListBox");
+
+      if (!guildMembers.length) {
+        box.innerHTML = "<p>길드원 명단이 없습니다.</p>";
+        return;
+      }
+
+      // 최신순(생성시간) 정렬 (있으면)
+      const sorted = [...guildMembers].sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      let html = `<p>현재 등록된 길드원 <span style="color:red;font-size:1.3em">${sorted.length}</span>명</p>`;
+
+      sorted.forEach(m => {
+        const name = (m.displayName || "").trim() || "이름없음";
+
+        // entries가 배열/객체 둘 다 대응
+        let entries = [];
+        if (Array.isArray(m.entries)) {
+          entries = m.entries;
+        } else if (m.entries && typeof m.entries === "object") {
+          entries = Object.values(m.entries);
+        }
+
+        entries = entries.map(e => String(e ?? "").trim()).filter(Boolean);
+        if (!entries.length) entries = ["(정보 없음)"];
+
+        html += `
+          <div class="member-card">
+            <div class="member-name">🐹 ${escapeHtml(name)}</div>
+            ${entries.map(line => `
+              <div class="member-line">${escapeHtml(stripPercentFromLine(line))}</div>
+            `).join("")}
+          </div>
+        `;
+      });
+
+      box.innerHTML = html;
+    }
+
+    // 길드원 입력 화면 열기
+    window.openGuildForm = () => {
+      // 초기 상태: 입력칸 1개만
+      document.getElementById("guildDisplayName").value = "";
+      const holder = document.getElementById("entryFields");
+      holder.innerHTML = "";
+      addEntryField(); // 1개 기본 생성
+
+      showOnly("guildFormScreen");
+    };
+
+    // + 버튼으로 입력칸 추가
+    window.addEntryField = () => addEntryField();
+    function addEntryField() {
+      const holder = document.getElementById("entryFields");
+      const idx = holder.children.length + 1;
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "guildEntry";
+      input.placeholder = `아이디/클래스/전투력 (예: abc/화술/6.0)`;
+      input.setAttribute("data-idx", String(idx));
+
+      holder.appendChild(input);
+    }
+
+    // 길드원 정보 저장
+    window.submitGuildInfo = async () => {
+      const displayName = document.getElementById("guildDisplayName").value.trim();
+      const entryInputs = Array.from(document.querySelectorAll(".guildEntry"));
+
+      let entries = entryInputs
+        .map(i => i.value.trim())
+        .filter(Boolean)
+        .map(line => stripPercentFromLine(line));
+
+      if (!displayName) {
+        alert("불리고 싶은 닉네임을 입력해주세요.");
+        return;
+      }
+      if (!entries.length) {
+        alert("아이디/클래스/전투력 정보를 1개 이상 입력해주세요.");
+        return;
+      }
+
+      await push(ref(db, "guildMembers"), {
+        displayName,
+        entries,
+        createdAt: Date.now()
+      });
+
+      alert("입력 완료!");
+      // 입력 후 길드원 명단으로 이동
+      showGuildList();
+    };
+
+    // 뒤로가기 (화면별)
+    window.goBackToMain = () => showOnly("mainForm");
+    window.goBackToCredits = () => showOnly("creditScreen");
+    window.goBackToGuild = () => showOnly("guildScreen");
+
+    // --- 유틸: HTML escape
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // --- 유틸: 라인에서 % 제거 (예: abc/화술/6.0% -> abc/화술/6.0)
+    function stripPercentFromLine(line) {
+      return String(line).replace(/%/g, "").trim();
+    }
+
+    // ---------------- 시작 ----------------
     (async function boot() {
       updateTitle();
       await ensureWeeklyReset();
@@ -446,6 +637,7 @@
 <body>
   <h1 id="pageTitle">🐹커염 길드 레이드 신청🐹</h1>
 
+  <!-- 메인 화면 -->
   <div class="container" id="mainForm">
     <span class="section-title">참여 가능 시간 (복수 선택 가능)</span>
 
@@ -478,11 +670,53 @@
 
     <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
     <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
+
+    <!-- ✅ 추가: 길드원 명단 보기 버튼 -->
+    <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
   </div>
 
+  <!-- 참여 명단 보기 화면 -->
   <div class="container" id="creditScreen" style="display:none;">
-    <button class="back-btn" onclick="goBack()">뒤로가기</button>
+    <div class="top-left-actions">
+      <button class="back-btn" onclick="goBackToMain()">뒤로가기</button>
+    </div>
+    <div style="height:34px;"></div>
     <div id="creditText"></div>
+  </div>
+
+  <!-- 길드원 명단 보기 화면 -->
+  <div class="container" id="guildScreen" style="display:none;">
+    <div class="top-left-actions">
+      <button class="back-btn" onclick="goBackToMain()">뒤로가기</button>
+      <!-- ✅ 추가: 자기 정보 적기 버튼 -->
+      <button class="mini-btn" onclick="openGuildForm()">자기 정보 적기</button>
+    </div>
+    <div style="height:34px;"></div>
+    <div id="guildListBox"></div>
+  </div>
+
+  <!-- 자기 정보 적기 화면 -->
+  <div class="container" id="guildFormScreen" style="display:none;">
+    <div class="top-left-actions">
+      <button class="back-btn" onclick="goBackToGuild()">뒤로가기</button>
+    </div>
+    <div style="height:34px;"></div>
+
+    <div class="page-title">자기 정보 적기</div>
+
+    <div style="font-weight:800; margin-top:6px;">- 불리고 싶은 닉네임</div>
+    <input type="text" id="guildDisplayName" placeholder="예: 귀염이">
+
+    <div style="font-weight:800; margin-top:10px;">- 아이디/클래스/전투력</div>
+    <div id="entryFields"></div>
+
+    <div class="add-row">
+      <span>추가로 입력하려면 +를 눌러주세요.</span>
+      <button class="plus-btn" title="추가" onclick="addEntryField()">+</button>
+    </div>
+
+    <button class="btn btn-submit" onclick="submitGuildInfo()">입력하기</button>
+    <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
   </div>
 </body>
 </html>
