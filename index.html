@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title커염 레이드 일정!</title>
+  <title>커염 레이드 일정!</title>
   <link href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css" rel="stylesheet"/>
 
   <style>
@@ -71,6 +71,7 @@
 
     #adminList { margin-top: 20px; text-align: left; }
     .admin-item { padding: 6px 0; border-bottom: 1px solid #ccc; }
+    .admin-item button { margin-left: 6px; }
   </style>
 
   <script type="module">
@@ -115,6 +116,12 @@
       });
     }
 
+    function normalizePercent(value) {
+      const v = String(value ?? "").trim();
+      if (!v) return "";
+      return v.includes("%") ? v : (v + "%");
+    }
+
     // ---------------------- 신청하기 ----------------------
     window.submitForm = () => {
       const nickname = document.getElementById("nickname").value.trim();
@@ -125,6 +132,8 @@
         alert("모든 항목을 입력해주세요.");
         return;
       }
+
+      percent = normalizePercent(percent);
 
       const submission = { nickname, group, percent };
       push(ref(db, 'submissions'), submission);
@@ -216,7 +225,7 @@
 
     window.deleteEntry = (id) => {
       if (confirm("정말 삭제하시겠습니까?")) {
-        remove(ref(db, `submissions/${id}`));
+        remove(ref(db, \`submissions/\${id}\`));
       }
     };
 
@@ -227,30 +236,33 @@
 
       if (!newNickname || !newGroup || !newPercent) return;
 
-      // 수정할 때도 숫자만 입력하면 % 자동 추가
-      let percentValue = newPercent.includes("%") ? newPercent : newPercent + "%";
-
-      set(ref(db, `submissions/${id}`), {
+      set(ref(db, \`submissions/\${id}\`), {
         nickname: newNickname,
         group: newGroup.replace(/\s/g, ""),
-        percent: percentValue
+        percent: normalizePercent(newPercent)
       });
     };
 
+    // (현재 HTML에는 bulkInputArea가 없어서 버튼/textarea를 추가하지 않으면 작동 안 합니다)
     window.registerBulkData = () => {
-      const lines = document.getElementById("bulkInputArea").value.trim().split("\n");
+      const el = document.getElementById("bulkInputArea");
+      if (!el) {
+        alert("일괄등록 입력창(bulkInputArea)이 HTML에 없습니다.");
+        return;
+      }
+
+      const lines = el.value.trim().split("\n");
       const submissionsRef = ref(db, "submissions");
 
       lines.forEach(line => {
         const [nickname, group, percent] = line.split(",").map(s => s.trim());
         if (nickname && group && percent) {
-          let percentValue = percent.includes("%") ? percent : percent + "%";
-          push(submissionsRef, { nickname, group, percent: percentValue });
+          push(submissionsRef, { nickname, group, percent: normalizePercent(percent) });
         }
       });
 
       alert("명단이 등록되었습니다.");
-      document.getElementById("bulkInputArea").value = "";
+      el.value = "";
     };
   </script>
 </head>
@@ -280,6 +292,7 @@
     <button class="back-btn" onclick="goBack()">뒤로가기</button>
     <h3>📋 신청자 관리</h3>
     <div id="adminList"></div>
-    
+  </div>
+
 </body>
 </html>
