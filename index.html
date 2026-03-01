@@ -9,7 +9,6 @@
   <style>
     * { box-sizing: border-box; font-family: 'SUIT', sans-serif; }
 
-    /* ✅ 배경 이미지: index.html과 같은 폴더의 00.jpg */
     body {
       margin: 0;
       padding: 30px 10px;
@@ -21,11 +20,9 @@
       background-repeat: no-repeat;
       background-attachment: fixed;
 
-      /* 배경 위 가독성용 */
       min-height: 100vh;
     }
 
-    /* 배경이 너무 튀면 은은한 오버레이 */
     body::before{
       content:"";
       position: fixed;
@@ -55,7 +52,6 @@
       backdrop-filter: blur(6px);
     }
 
-    /* ✅ 텍스트 입력칸만 100% */
     input[type="text"] {
       width: 100%;
       padding: 12px;
@@ -103,12 +99,13 @@
       cursor: pointer;
     }
 
-    /* ✅ 커스텀 체크박스 영역 */
     .section-title{
       font-weight: 800;
       margin-bottom: 8px;
       display: block;
     }
+
+    /* 커스텀 체크박스 */
     .checkbox-group{
       display: flex;
       gap: 10px;
@@ -116,8 +113,6 @@
       flex-wrap: wrap;
       margin: 10px 0 6px;
     }
-
-    /* 기본 체크박스 숨김 */
     .cb input[type="checkbox"]{
       position: absolute;
       opacity: 0;
@@ -126,8 +121,6 @@
       margin: 0;
       pointer-events: none;
     }
-
-    /* 커스텀 라벨 */
     .cb{
       display: inline-flex;
       align-items: center;
@@ -145,8 +138,6 @@
       border-color: rgba(63,169,245,0.55);
     }
     .cb:active{ transform: translateY(1px); }
-
-    /* 네모 박스 */
     .cb .box{
       width: 18px;
       height: 18px;
@@ -158,8 +149,6 @@
       background: #fff;
       transition: border-color .15s ease, background .15s ease;
     }
-
-    /* 체크 표시 */
     .cb .box::after{
       content: "";
       width: 9px;
@@ -170,8 +159,6 @@
       margin-top: -1px;
       transition: border-color .15s ease;
     }
-
-    /* 체크된 상태 */
     .cb input[type="checkbox"]:checked + .box{
       border-color: #3fa9f5;
       background: rgba(63,169,245,0.12);
@@ -180,8 +167,6 @@
       border-left-color: #3fa9f5;
       border-bottom-color: #3fa9f5;
     }
-
-    /* 체크된 상태일 때 라벨 전체 강조 */
     .cb input[type="checkbox"]:checked ~ .label-text{
       font-weight: 800;
     }
@@ -190,7 +175,30 @@
 
     summary { font-weight: 800; cursor: pointer; }
     ul { list-style: none; padding-left: 0; margin: 10px 0 0; }
-    li { margin: 4px 0; }
+
+    /* ✅ 명단 아이템 + 삭제 X 버튼 */
+    .credit-item{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px dashed rgba(0,0,0,0.12);
+    }
+    .credit-item:last-child{ border-bottom: none; }
+
+    .del-btn{
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 900;
+      background: rgba(0,0,0,0.06);
+    }
+    .del-btn:hover{
+      background: rgba(255,0,0,0.12);
+    }
   </style>
 
   <script type="module">
@@ -228,38 +236,32 @@
     function kstDayNumber(nowUtcMs = Date.now()) {
       return Math.floor((nowUtcMs + KST_OFFSET_MS) / DAY_MS);
     }
-
     function kstWeekday(nowUtcMs = Date.now()) {
       const kst = new Date(nowUtcMs + KST_OFFSET_MS);
       return kst.getUTCDay(); // 0 Sun .. 6 Sat
     }
-
     function dayNumberToKstMD(dayNum) {
       const utcMs = dayNum * DAY_MS - KST_OFFSET_MS;
       const kst = new Date(utcMs + KST_OFFSET_MS);
       return { month: kst.getUTCMonth() + 1, day: kst.getUTCDate() };
     }
-
     function getThisWeekMondayDayNum(nowUtcMs = Date.now()) {
       const dn = kstDayNumber(nowUtcMs);
       const wd = kstWeekday(nowUtcMs);
       const monIndex = (wd + 6) % 7; // Mon=0
       return dn - monIndex;
     }
-
     function getThisWeekTuesdayReset(nowUtcMs = Date.now()) {
       const mondayDn = getThisWeekMondayDayNum(nowUtcMs);
       const tuesdayDn = mondayDn + 1;
       const resetUtcMs = (tuesdayDn * DAY_MS) - KST_OFFSET_MS; // Tue 00:00 KST
       return { resetUtcMs, resetKey: String(tuesdayDn) };
     }
-
     function getTitleMondayDayNum(nowUtcMs = Date.now()) {
       const mondayDn = getThisWeekMondayDayNum(nowUtcMs);
       const { resetUtcMs } = getThisWeekTuesdayReset(nowUtcMs);
       return (nowUtcMs < resetUtcMs) ? mondayDn : (mondayDn + 7);
     }
-
     function updateTitle() {
       const mondayDn = getTitleMondayDayNum(Date.now());
       const md = dayNumberToKstMD(mondayDn);
@@ -284,11 +286,11 @@
       }
     }
 
-    // ----- 입력/제출 -----
-    function normalizePercent(value) {
+    // ----- 전투력: % 제거 -----
+    function normalizePower(value) {
       const v = String(value ?? "").trim();
-      if (!v) return "";
-      return v.includes("%") ? v : (v + "%");
+      // 혹시 사용자가 6.0% 이렇게 넣으면 %만 제거
+      return v.replace(/%/g, "").trim();
     }
 
     window.toggleEtcInput = () => {
@@ -297,11 +299,18 @@
       input.style.display = check.checked ? "block" : "none";
     };
 
+    // ✅ 누구나 명단에서 삭제 가능
+    window.deleteEntryPublic = async (id) => {
+      if (!id) return;
+      if (!confirm("해당 신청을 삭제할까요?")) return;
+      await remove(ref(db, `submissions/${id}`));
+    };
+
     window.submitForm = async () => {
       await ensureWeeklyReset();
 
       const nickname = document.getElementById("nickname").value.trim();
-      const percentInput = document.getElementById("percent").value.trim();
+      const powerInput = document.getElementById("percent").value.trim();
 
       let selectedTimes = Array.from(document.querySelectorAll('input[name="time"]:checked'))
         .map(cb => cb.value);
@@ -317,7 +326,7 @@
         selectedTimes.push(etcValue);
       }
 
-      if (!nickname || !percentInput || selectedTimes.length === 0) {
+      if (!nickname || !powerInput || selectedTimes.length === 0) {
         alert("모든 항목을 입력해주세요.");
         return;
       }
@@ -325,7 +334,7 @@
       const submission = {
         nickname,
         group: selectedTimes.join(", "),
-        percent: normalizePercent(percentInput)
+        percent: normalizePower(powerInput) // ✅ % 없이 저장
       };
 
       push(ref(db, "submissions"), submission);
@@ -346,7 +355,8 @@
       onValue(submissionsRef, (snapshot) => {
         submissions = [];
         snapshot.forEach((childSnapshot) => {
-          submissions.push(childSnapshot.val());
+          // ✅ id(키) 포함해서 저장 (삭제 기능을 위해 필요)
+          submissions.push({ id: childSnapshot.key, ...childSnapshot.val() });
         });
 
         document.getElementById("mainForm").style.display = "none";
@@ -365,16 +375,26 @@
 
       const groups = {};
       submissions.forEach(item => {
-        if (!groups[item.group]) groups[item.group] = [];
-        groups[item.group].push(item);
+        const g = item.group || "기타";
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(item);
       });
 
-      let html = `<p>현재 참여한 인원 <span style="color:red;font-size:1.3em">${submissions.length}</span>명</p>`;
+      // ✅ 문구 변경: 현재 참여한 길드원
+      let html = `<p>현재 참여한 길드원 <span style="color:red;font-size:1.3em">${submissions.length}</span>명</p>`;
 
       Object.entries(groups).forEach(([group, list]) => {
+        // ✅ '2명' 표시
         html += `<details>
-                   <summary>${group} / ${list.length}</summary>
-                   <ul>${list.map(p => `<li>${p.nickname} / ${p.percent}</li>`).join("")}</ul>
+                   <summary>${group} / ${list.length}명</summary>
+                   <ul>
+                     ${list.map(p => `
+                       <li class="credit-item">
+                         <span>${p.nickname} / ${p.percent}</span>
+                         <button class="del-btn" title="삭제" onclick="deleteEntryPublic('${p.id}')">×</button>
+                       </li>
+                     `).join("")}
+                   </ul>
                  </details>`;
       });
 
