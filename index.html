@@ -176,7 +176,7 @@
     summary { font-weight: 800; cursor: pointer; }
     ul { list-style: none; padding-left: 0; margin: 10px 0 0; }
 
-    /* ✅ 명단 아이템 + 삭제 X 버튼 */
+    /* 명단 아이템 + 삭제 X 버튼 */
     .credit-item{
       display: flex;
       align-items: center;
@@ -286,11 +286,36 @@
       }
     }
 
-    // ----- 전투력: % 제거 -----
+    // ✅ 전투력: 저장/표시 모두에서 % 제거
     function normalizePower(value) {
-      const v = String(value ?? "").trim();
-      // 혹시 사용자가 6.0% 이렇게 넣으면 %만 제거
-      return v.replace(/%/g, "").trim();
+      return String(value ?? "").replace(/%/g, "").trim();
+    }
+    function displayPower(value) {
+      // 혹시 기존 데이터에 %가 들어있어도 표시할 때 제거
+      return String(value ?? "").replace(/%/g, "").trim();
+    }
+
+    // ✅ 닉네임/클래스: '/'가 없으면 알아서 넣기
+    // - 공백/콤마/하이픈 등 구분자로 두 덩어리가 나오면 "닉/클래스"로 변환
+    // - 덩어리가 1개면(구분자 없음) 자동 삽입이 애매하니 그대로 둠
+    function normalizeNickClass(value) {
+      const raw = String(value ?? "").trim();
+      if (!raw) return "";
+
+      if (raw.includes("/")) {
+        const [a, b] = raw.split("/").map(s => s.trim());
+        if (a && b) return `${a}/${b}`;
+        return raw;
+      }
+
+      // 공백/콤마/하이픈/세로줄 등으로 나뉘는 경우만 자동 변환
+      const parts = raw.split(/[,\-|｜|\s]+/).map(s => s.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        return `${parts[0]}/${parts.slice(1).join("")}`;
+      }
+
+      // 구분자 자체가 없는 경우는 그대로
+      return raw;
     }
 
     window.toggleEtcInput = () => {
@@ -299,7 +324,6 @@
       input.style.display = check.checked ? "block" : "none";
     };
 
-    // ✅ 누구나 명단에서 삭제 가능
     window.deleteEntryPublic = async (id) => {
       if (!id) return;
       if (!confirm("해당 신청을 삭제할까요?")) return;
@@ -309,8 +333,8 @@
     window.submitForm = async () => {
       await ensureWeeklyReset();
 
-      const nickname = document.getElementById("nickname").value.trim();
-      const powerInput = document.getElementById("percent").value.trim();
+      const nicknameRaw = document.getElementById("nickname").value;
+      const powerRaw = document.getElementById("percent").value.trim();
 
       let selectedTimes = Array.from(document.querySelectorAll('input[name="time"]:checked'))
         .map(cb => cb.value);
@@ -326,7 +350,10 @@
         selectedTimes.push(etcValue);
       }
 
-      if (!nickname || !powerInput || selectedTimes.length === 0) {
+      const nickname = normalizeNickClass(nicknameRaw);
+      const power = normalizePower(powerRaw);
+
+      if (!nickname || !power || selectedTimes.length === 0) {
         alert("모든 항목을 입력해주세요.");
         return;
       }
@@ -334,7 +361,7 @@
       const submission = {
         nickname,
         group: selectedTimes.join(", "),
-        percent: normalizePower(powerInput) // ✅ % 없이 저장
+        percent: power
       };
 
       push(ref(db, "submissions"), submission);
@@ -355,7 +382,6 @@
       onValue(submissionsRef, (snapshot) => {
         submissions = [];
         snapshot.forEach((childSnapshot) => {
-          // ✅ id(키) 포함해서 저장 (삭제 기능을 위해 필요)
           submissions.push({ id: childSnapshot.key, ...childSnapshot.val() });
         });
 
@@ -380,17 +406,15 @@
         groups[g].push(item);
       });
 
-      // ✅ 문구 변경: 현재 참여한 길드원
       let html = `<p>현재 참여한 길드원 <span style="color:red;font-size:1.3em">${submissions.length}</span>명</p>`;
 
       Object.entries(groups).forEach(([group, list]) => {
-        // ✅ '2명' 표시
         html += `<details>
                    <summary>${group} / ${list.length}명</summary>
                    <ul>
                      ${list.map(p => `
                        <li class="credit-item">
-                         <span>${p.nickname} / ${p.percent}</span>
+                         <span>${p.nickname} / ${displayPower(p.percent)}</span>
                          <button class="del-btn" title="삭제" onclick="deleteEntryPublic('${p.id}')">×</button>
                        </li>
                      `).join("")}
@@ -449,7 +473,7 @@
       <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
     </div>
 
-    <input type="text" id="nickname" placeholder="닉네임/클래스 (예: 귀염/화술)">
+    <input type="text" id="nickname" placeholder="닉네임/클래스 (예: 귀염/화술 또는 귀염 화술)">
     <input type="text" id="percent" placeholder="전투력 (예: 6.0)">
 
     <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
