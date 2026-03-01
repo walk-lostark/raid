@@ -14,7 +14,7 @@
       padding: 30px 10px;
       text-align: center;
     }
-    h1 { font-size: 1.8em; margin-bottom: 20px; white-space: nowrap; }
+    h1 { font-size: 1.8em; margin-bottom: 20px; }
     .container {
       max-width: 500px;
       margin: 0 auto;
@@ -23,8 +23,9 @@
       padding: 30px 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       position: relative;
+      text-align: left;
     }
-    input, textarea {
+    input {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
@@ -45,7 +46,6 @@
     .btn-submit { background-color: #28a745; color: white; }
     .btn-view   { background-color: #007bff; color: white; }
     .btn-admin  { background-color: #343a40; color: white; }
-    .btn-register { background-color: #ff9800; color: white; }
 
     .back-btn {
       background-color: #3fa9f5;
@@ -61,17 +61,19 @@
       cursor: pointer;
     }
 
+    .checkbox-group label {
+      margin-right: 15px;
+      font-size: 0.95em;
+    }
+
+    #etcTimeInput {
+      margin-top: 8px;
+    }
+
     summary {
       font-weight: bold;
-      margin-top: 10px;
       cursor: pointer;
     }
-    ul { list-style: none; padding-left: 0; }
-    li { margin: 4px 0; }
-
-    #adminList { margin-top: 20px; text-align: left; }
-    .admin-item { padding: 6px 0; border-bottom: 1px solid #ccc; }
-    .admin-item button { margin-left: 6px; }
   </style>
 
   <script type="module">
@@ -102,197 +104,131 @@
     let submissions = [];
     let submissionMap = {};
 
-    function loadSubmissions(callback) {
-      const submissionsRef = ref(db, 'submissions');
-      onValue(submissionsRef, (snapshot) => {
-        submissions = [];
-        submissionMap = {};
-        snapshot.forEach((childSnapshot) => {
-          const item = childSnapshot.val();
-          submissions.push(item);
-          submissionMap[childSnapshot.key] = item;
-        });
-        if (callback) callback();
-      });
-    }
-
     function normalizePercent(value) {
-      const v = String(value ?? "").trim();
-      if (!v) return "";
-      return v.includes("%") ? v : (v + "%");
+      return value.includes("%") ? value : value + "%";
     }
 
-    // ---------------------- 신청하기 ----------------------
+    window.toggleEtcInput = () => {
+      const check = document.getElementById("etcTimeCheck");
+      const input = document.getElementById("etcTimeInput");
+      input.style.display = check.checked ? "block" : "none";
+    };
+
     window.submitForm = () => {
       const nickname = document.getElementById("nickname").value.trim();
-      let group = document.getElementById("group").value.trim().replace(/\s/g, "");
-      let percent = document.getElementById("percent").value.trim();
+      const percentInput = document.getElementById("percent").value.trim();
 
-      if (!nickname || !group || !percent) {
+      let selectedTimes = Array.from(document.querySelectorAll('input[name="time"]:checked'))
+        .map(cb => cb.value);
+
+      const etcChecked = document.getElementById("etcTimeCheck").checked;
+      const etcValue = document.getElementById("etcTimeText").value.trim();
+
+      if (etcChecked) {
+        if (!etcValue) {
+          alert("기타 시간을 입력해주세요.");
+          return;
+        }
+        selectedTimes.push(etcValue);
+      }
+
+      if (!nickname || !percentInput || selectedTimes.length === 0) {
         alert("모든 항목을 입력해주세요.");
         return;
       }
 
-      percent = normalizePercent(percent);
+      const submission = {
+        nickname,
+        group: selectedTimes.join(", "),
+        percent: normalizePercent(percentInput)
+      };
 
-      const submission = { nickname, group, percent };
       push(ref(db, 'submissions'), submission);
 
       alert("신청 완료!");
+
       document.getElementById("nickname").value = "";
-      document.getElementById("group").value = "";
       document.getElementById("percent").value = "";
+      document.getElementById("etcTimeText").value = "";
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      toggleEtcInput();
     };
 
-    // ---------------------- 명단 보기 ----------------------
     window.showCredits = () => {
-      loadSubmissions(() => {
+      const submissionsRef = ref(db, 'submissions');
+      onValue(submissionsRef, (snapshot) => {
+        submissions = [];
+        snapshot.forEach((childSnapshot) => {
+          submissions.push(childSnapshot.val());
+        });
+
         document.getElementById("mainForm").style.display = "none";
         document.getElementById("creditScreen").style.display = "block";
-        renderCredits();
+
+        const creditText = document.getElementById("creditText");
+
+        if (submissions.length === 0) {
+          creditText.innerHTML = "<p>명단이 없습니다.</p>";
+          return;
+        }
+
+        const groups = {};
+        submissions.forEach(item => {
+          if (!groups[item.group]) groups[item.group] = [];
+          groups[item.group].push(item);
+        });
+
+        let html = `<p>현재 참여한 인원 <span style="color:red;font-size:1.3em">${submissions.length}</span>명</p>`;
+
+        Object.entries(groups).forEach(([group, list]) => {
+          html += `<details>
+                     <summary>${group} / ${list.length}</summary>
+                     <ul>${list.map(p => `<li>${p.nickname} / ${p.percent}</li>`).join("")}</ul>
+                   </details>`;
+        });
+
+        creditText.innerHTML = html;
       });
     };
 
-    function renderCredits() {
-      const creditText = document.getElementById("creditText");
-
-      if (submissions.length === 0) {
-        creditText.innerHTML = "<p>명단이 없습니다.</p>";
-        return;
-      }
-
-      const groups = {};
-      submissions.forEach(item => {
-        if (!groups[item.group]) groups[item.group] = [];
-        groups[item.group].push(item);
-      });
-
-      const sortedGroups = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
-
-      let html = `<p>현재 참여한 인원 <span style="color:red;font-size:1.3em">${submissions.length}</span>명</p>`;
-      sortedGroups.forEach(([group, list]) => {
-        html += `<details>
-                   <summary>${group} / ${list.length}</summary>
-                   <ul>${list.map(p => `<li>${p.nickname} / ${p.percent}</li>`).join("")}</ul>
-                 </details>`;
-      });
-
-      creditText.innerHTML = html;
-    }
-
-    // ---------------------- 뒤로가기 ----------------------
     window.goBack = () => {
       document.getElementById("mainForm").style.display = "block";
       document.getElementById("creditScreen").style.display = "none";
-      document.getElementById("adminPanel").style.display = "none";
-    };
-
-    // ---------------------- 관리자 모드 ----------------------
-    window.openAdminPanel = () => {
-      const pw = prompt("관리자 비밀번호를 입력하세요:");
-      if (pw !== "admin123") {
-        alert("비밀번호가 틀렸습니다.");
-        return;
-      }
-
-      document.getElementById("mainForm").style.display = "none";
-      document.getElementById("creditScreen").style.display = "none";
-      document.getElementById("adminPanel").style.display = "block";
-
-      loadSubmissions(renderAdminList);
-    };
-
-    function renderAdminList() {
-      const list = document.getElementById("adminList");
-      list.innerHTML = "";
-
-      if (submissions.length === 0) {
-        list.innerHTML = "<p>신청자가 없습니다.</p>";
-        return;
-      }
-
-      Object.entries(submissionMap).forEach(([id, item], index) => {
-        const div = document.createElement("div");
-        div.className = "admin-item";
-        div.innerHTML = `
-          ${index + 1}. ${item.nickname} - ${item.group} - ${item.percent}
-          <button onclick="editEntry('${id}', '${item.nickname}', '${item.group}', '${item.percent}')">수정</button>
-          <button onclick="deleteEntry('${id}')">삭제</button>
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    window.deleteEntry = (id) => {
-      if (confirm("정말 삭제하시겠습니까?")) {
-        remove(ref(db, \`submissions/\${id}\`));
-      }
-    };
-
-    window.editEntry = (id, nickname, group, percent) => {
-      const newNickname = prompt("닉네임 수정:", nickname);
-      const newGroup = prompt("클래스 수정:", group);
-      const newPercent = prompt("전투력 수정:", percent);
-
-      if (!newNickname || !newGroup || !newPercent) return;
-
-      set(ref(db, \`submissions/\${id}\`), {
-        nickname: newNickname,
-        group: newGroup.replace(/\s/g, ""),
-        percent: normalizePercent(newPercent)
-      });
-    };
-
-    // (현재 HTML에는 bulkInputArea가 없어서 버튼/textarea를 추가하지 않으면 작동 안 합니다)
-    window.registerBulkData = () => {
-      const el = document.getElementById("bulkInputArea");
-      if (!el) {
-        alert("일괄등록 입력창(bulkInputArea)이 HTML에 없습니다.");
-        return;
-      }
-
-      const lines = el.value.trim().split("\n");
-      const submissionsRef = ref(db, "submissions");
-
-      lines.forEach(line => {
-        const [nickname, group, percent] = line.split(",").map(s => s.trim());
-        if (nickname && group && percent) {
-          push(submissionsRef, { nickname, group, percent: normalizePercent(percent) });
-        }
-      });
-
-      alert("명단이 등록되었습니다.");
-      el.value = "";
     };
   </script>
 </head>
 
 <body>
 
-  <h1>🐹커염 길드 레이드 신청🐹</h1>
+<h1>🐹커염 길드 레이드 신청🐹</h1>
 
-  <!-- 메인 신청 화면 -->
-  <div class="container" id="mainForm">
-    <input type="text" id="group" placeholder="참여시간(예:9시or9시반+기타)">
-    <input type="text" id="nickname" placeholder="닉네임/클래스(예:귀염/화술)">
-    <input type="text" id="percent" placeholder="전투력(예:6.0)">
-    <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
-    <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
-    <button class="btn btn-admin" onclick="openAdminPanel()">🐣관리자 모드🐣</button>
+<div class="container" id="mainForm">
+
+  <strong>참여 가능 시간 (복수 선택 가능)</strong>
+  <div class="checkbox-group" style="margin-top:8px;">
+    <label><input type="checkbox" name="time" value="9시"> 9시</label>
+    <label><input type="checkbox" name="time" value="9시반"> 9시 반</label>
+    <label>
+      <input type="checkbox" id="etcTimeCheck" onchange="toggleEtcInput()"> 기타
+    </label>
   </div>
 
-  <!-- 명단 보기 화면 -->
-  <div class="container" id="creditScreen" style="display:none;">
-    <button class="back-btn" onclick="goBack()">뒤로가기</button>
-    <div id="creditText"></div>
+  <div id="etcTimeInput" style="display:none;">
+    <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
   </div>
 
-  <!-- 관리자 패널 -->
-  <div class="container" id="adminPanel" style="display:none;">
-    <button class="back-btn" onclick="goBack()">뒤로가기</button>
-    <h3>📋 신청자 관리</h3>
-    <div id="adminList"></div>
-  </div>
+  <input type="text" id="nickname" placeholder="닉네임/클래스 (예: 귀염/화술)">
+  <input type="text" id="percent" placeholder="전투력 (예: 6.0)">
+
+  <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
+  <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
+
+</div>
+
+<div class="container" id="creditScreen" style="display:none;">
+  <button class="back-btn" onclick="goBack()">뒤로가기</button>
+  <div id="creditText"></div>
+</div>
 
 </body>
 </html>
