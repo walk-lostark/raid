@@ -193,7 +193,7 @@ input[type="checkbox"] {
     function normalizePercent(value) {
       const v = String(value ?? "").trim();
       if (!v) return "";
-      return v.includes("%") ? v : (v + "%");
+      return v.includes("%") ? v : (v + "↑");
     }
 
     window.toggleEtcInput = () => {
