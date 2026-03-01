@@ -8,48 +8,84 @@
 
   <style>
     * { box-sizing: border-box; font-family: 'SUIT', sans-serif; }
+
+    /* ✅ 배경 이미지: index.html과 같은 폴더의 00.jpg */
     body {
       margin: 0;
-      background: #f0f0f0;
       padding: 30px 10px;
       text-align: center;
-    }
-    h1 { font-size: 1.8em; margin-bottom: 20px; }
-    .container {
-      max-width: 500px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 12px;
-      padding: 30px 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      position: relative;
-      text-align: left;
-    }
- /* 텍스트 입력칸만 100% */
-input[type="text"] {
-  width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 1em;
-}
 
-/* 체크박스는 기본 크기 유지 */
-input[type="checkbox"] {
-  width: auto;
-  margin-right: 5px;
-}
+      background-image: url("./00.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+
+      /* 배경 위 가독성용 */
+      min-height: 100vh;
+    }
+
+    /* 배경이 너무 튀면 은은한 오버레이 */
+    body::before{
+      content:"";
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.55);
+      pointer-events: none;
+    }
+
+    h1 {
+      font-size: 1.8em;
+      margin: 0 0 20px;
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.9);
+      border-radius: 16px;
+      padding: 26px 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+      position: relative;
+      z-index: 1;
+      text-align: left;
+      backdrop-filter: blur(6px);
+    }
+
+    /* ✅ 텍스트 입력칸만 100% */
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 10px;
+      border: 1px solid #d7d7d7;
+      font-size: 1em;
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
+      background: rgba(255,255,255,0.95);
+    }
+    input[type="text"]:focus{
+      border-color: #3fa9f5;
+      box-shadow: 0 0 0 4px rgba(63,169,245,0.18);
+    }
+
     .btn {
       width: 100%;
-      padding: 10px;
+      padding: 11px;
       margin-top: 10px;
-      border-radius: 6px;
+      border-radius: 10px;
       border: none;
-      font-weight: bold;
+      font-weight: 800;
       font-size: 1em;
       cursor: pointer;
+      transition: transform .05s ease, filter .15s ease;
     }
+    .btn:active { transform: translateY(1px); }
+    .btn:hover { filter: brightness(0.98); }
+
     .btn-submit { background-color: #28a745; color: white; }
     .btn-view   { background-color: #007bff; color: white; }
 
@@ -57,9 +93,9 @@ input[type="checkbox"] {
       background-color: #3fa9f5;
       color: white;
       border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: bold;
+      padding: 7px 12px;
+      border-radius: 10px;
+      font-weight: 800;
       font-size: 0.95em;
       position: absolute;
       top: 10px;
@@ -67,16 +103,93 @@ input[type="checkbox"] {
       cursor: pointer;
     }
 
-    .checkbox-group label {
-      margin-right: 15px;
-      font-size: 0.95em;
-      white-space: nowrap;
+    /* ✅ 커스텀 체크박스 영역 */
+    .section-title{
+      font-weight: 800;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .checkbox-group{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 10px 0 6px;
+    }
+
+    /* 기본 체크박스 숨김 */
+    .cb input[type="checkbox"]{
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      pointer-events: none;
+    }
+
+    /* 커스텀 라벨 */
+    .cb{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.85);
+      cursor: pointer;
+      user-select: none;
+      transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .cb:hover{
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      border-color: rgba(63,169,245,0.55);
+    }
+    .cb:active{ transform: translateY(1px); }
+
+    /* 네모 박스 */
+    .cb .box{
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 2px solid rgba(0,0,0,0.25);
+      display: grid;
+      place-items: center;
+      flex: 0 0 18px;
+      background: #fff;
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    /* 체크 표시 */
+    .cb .box::after{
+      content: "";
+      width: 9px;
+      height: 5px;
+      border-left: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+      transform: rotate(-45deg);
+      margin-top: -1px;
+      transition: border-color .15s ease;
+    }
+
+    /* 체크된 상태 */
+    .cb input[type="checkbox"]:checked + .box{
+      border-color: #3fa9f5;
+      background: rgba(63,169,245,0.12);
+    }
+    .cb input[type="checkbox"]:checked + .box::after{
+      border-left-color: #3fa9f5;
+      border-bottom-color: #3fa9f5;
+    }
+
+    /* 체크된 상태일 때 라벨 전체 강조 */
+    .cb input[type="checkbox"]:checked ~ .label-text{
+      font-weight: 800;
     }
 
     #etcTimeInput { margin-top: 8px; }
 
-    summary { font-weight: bold; cursor: pointer; }
-    ul { list-style: none; padding-left: 0; }
+    summary { font-weight: 800; cursor: pointer; }
+    ul { list-style: none; padding-left: 0; margin: 10px 0 0; }
     li { margin: 4px 0; }
   </style>
 
@@ -88,11 +201,9 @@ input[type="checkbox"] {
       push,
       onValue,
       remove,
-      set,
       runTransaction
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // ---------------------- Firebase ----------------------
     const firebaseConfig = {
       apiKey: "AIzaSyByg8FeU-3woVufxnLoEMhi4t7-CRlS6BI",
       authDomain: "participation-4f85e.firebaseapp.com",
@@ -109,39 +220,33 @@ input[type="checkbox"] {
 
     let submissions = [];
 
-    // ---------------------- KST 유틸 ----------------------
+    // ----- KST 유틸 -----
     const HOUR_MS = 3600 * 1000;
     const DAY_MS  = 24 * HOUR_MS;
     const KST_OFFSET_MS = 9 * HOUR_MS;
 
-    // "KST 기준 날짜번호" (epoch day count)
     function kstDayNumber(nowUtcMs = Date.now()) {
       return Math.floor((nowUtcMs + KST_OFFSET_MS) / DAY_MS);
     }
 
-    // KST 기준 요일 (0:일 ~ 6:토)
     function kstWeekday(nowUtcMs = Date.now()) {
       const kst = new Date(nowUtcMs + KST_OFFSET_MS);
-      return kst.getUTCDay();
+      return kst.getUTCDay(); // 0 Sun .. 6 Sat
     }
 
-    // dayNumber -> {month, day} (KST 기준)
     function dayNumberToKstMD(dayNum) {
-      // KST midnight epoch(UTC) = dayNum*DAY_MS - 9h
       const utcMs = dayNum * DAY_MS - KST_OFFSET_MS;
       const kst = new Date(utcMs + KST_OFFSET_MS);
       return { month: kst.getUTCMonth() + 1, day: kst.getUTCDate() };
     }
 
-    // 이번 주 월요일(dayNumber) 구하기 (KST 기준)
     function getThisWeekMondayDayNum(nowUtcMs = Date.now()) {
       const dn = kstDayNumber(nowUtcMs);
-      const wd = kstWeekday(nowUtcMs); // 0 Sun .. 6 Sat
-      const monIndex = (wd + 6) % 7;   // Mon=0, Tue=1, ... Sun=6
+      const wd = kstWeekday(nowUtcMs);
+      const monIndex = (wd + 6) % 7; // Mon=0
       return dn - monIndex;
     }
 
-    // 이번 주 화요일 00:00(KST)의 epoch(UTC ms) + resetKey(화요일 dayNumber)
     function getThisWeekTuesdayReset(nowUtcMs = Date.now()) {
       const mondayDn = getThisWeekMondayDayNum(nowUtcMs);
       const tuesdayDn = mondayDn + 1;
@@ -149,9 +254,6 @@ input[type="checkbox"] {
       return { resetUtcMs, resetKey: String(tuesdayDn) };
     }
 
-    // 타이틀에 표시할 "월요일 날짜" 결정:
-    // - 월요일(화요일 00시 전)에는 이번 주 월요일
-    // - 화요일 00시 이후에는 다음 주 월요일
     function getTitleMondayDayNum(nowUtcMs = Date.now()) {
       const mondayDn = getThisWeekMondayDayNum(nowUtcMs);
       const { resetUtcMs } = getThisWeekTuesdayReset(nowUtcMs);
@@ -166,30 +268,23 @@ input[type="checkbox"] {
       document.title = `${md.month}월${md.day}일 커염 레이드 신청`;
     }
 
-    // ---------------------- 매주 화요일 00시 초기화 ----------------------
     async function ensureWeeklyReset() {
       const now = Date.now();
       const { resetUtcMs, resetKey } = getThisWeekTuesdayReset(now);
-
-      // 아직 화요일 00시(KST)가 안 됐으면 아무 것도 안 함
       if (now < resetUtcMs) return;
 
       const metaRef = ref(db, "meta/lastResetKey");
-
-      // 트랜잭션으로 "이번 주 resetKey"를 최초 1회만 갱신
-      const txResult = await runTransaction(metaRef, (current) => {
-        if (current === resetKey) return; // 이미 초기화함
-        return resetKey; // 이번 주 초기화 "선점"
+      const tx = await runTransaction(metaRef, (current) => {
+        if (current === resetKey) return;
+        return resetKey;
       });
 
-      // 내가 선점(커밋)한 경우에만 실제 삭제 실행
-      if (txResult.committed) {
-        // submissions 전체 삭제
+      if (tx.committed) {
         await remove(ref(db, "submissions"));
       }
     }
 
-    // ---------------------- 입력/제출 ----------------------
+    // ----- 입력/제출 -----
     function normalizePercent(value) {
       const v = String(value ?? "").trim();
       if (!v) return "";
@@ -203,7 +298,6 @@ input[type="checkbox"] {
     };
 
     window.submitForm = async () => {
-      // 제출 직전에 혹시 화요일이 지났으면 먼저 초기화
       await ensureWeeklyReset();
 
       const nickname = document.getElementById("nickname").value.trim();
@@ -245,9 +339,7 @@ input[type="checkbox"] {
       toggleEtcInput();
     };
 
-    // ---------------------- 명단 보기 ----------------------
     window.showCredits = async () => {
-      // 화면 전환 전에 초기화 체크
       await ensureWeeklyReset();
 
       const submissionsRef = ref(db, "submissions");
@@ -259,7 +351,6 @@ input[type="checkbox"] {
 
         document.getElementById("mainForm").style.display = "none";
         document.getElementById("creditScreen").style.display = "block";
-
         renderCredits();
       });
     };
@@ -295,13 +386,11 @@ input[type="checkbox"] {
       document.getElementById("creditScreen").style.display = "none";
     };
 
-    // ---------------------- 시작 시 동작 ----------------------
     (async function boot() {
       updateTitle();
       await ensureWeeklyReset();
-      updateTitle(); // 초기화 후 타이틀도 즉시 반영
+      updateTitle();
 
-      // 1분마다 타이틀/초기화 체크 (화요일 00시 지나면 자동 반영)
       setInterval(async () => {
         updateTitle();
         await ensureWeeklyReset();
@@ -311,32 +400,45 @@ input[type="checkbox"] {
 </head>
 
 <body>
+  <h1 id="pageTitle">🐹커염 길드 레이드 신청🐹</h1>
 
-<h1 id="pageTitle">🐹커염 길드 레이드 신청🐹</h1>
+  <div class="container" id="mainForm">
+    <span class="section-title">참여 가능 시간 (복수 선택 가능)</span>
 
-<div class="container" id="mainForm">
-  <strong>참여 가능 시간 (복수 선택 가능)</strong>
-  <div class="checkbox-group" style="margin-top:8px;">
-    <label><input type="checkbox" name="time" value="9시"> 9시</label>
-    <label><input type="checkbox" name="time" value="9시반"> 9시 반</label>
-    <label><input type="checkbox" id="etcTimeCheck" onchange="toggleEtcInput()"> 기타</label>
+    <div class="checkbox-group">
+      <label class="cb">
+        <input type="checkbox" name="time" value="9시">
+        <span class="box"></span>
+        <span class="label-text">9시</span>
+      </label>
+
+      <label class="cb">
+        <input type="checkbox" name="time" value="9시반">
+        <span class="box"></span>
+        <span class="label-text">9시 반</span>
+      </label>
+
+      <label class="cb">
+        <input type="checkbox" id="etcTimeCheck" onchange="toggleEtcInput()">
+        <span class="box"></span>
+        <span class="label-text">기타</span>
+      </label>
+    </div>
+
+    <div id="etcTimeInput" style="display:none;">
+      <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
+    </div>
+
+    <input type="text" id="nickname" placeholder="닉네임/클래스 (예: 귀염/화술)">
+    <input type="text" id="percent" placeholder="전투력 (예: 6.0)">
+
+    <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
+    <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
   </div>
 
-  <div id="etcTimeInput" style="display:none;">
-    <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
+  <div class="container" id="creditScreen" style="display:none;">
+    <button class="back-btn" onclick="goBack()">뒤로가기</button>
+    <div id="creditText"></div>
   </div>
-
-  <input type="text" id="nickname" placeholder="닉네임/클래스 (예: 귀염/화술)">
-  <input type="text" id="percent" placeholder="전투력 (예: 6.0)">
-
-  <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
-  <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
-</div>
-
-<div class="container" id="creditScreen" style="display:none;">
-  <button class="back-btn" onclick="goBack()">뒤로가기</button>
-  <div id="creditText"></div>
-</div>
-
 </body>
 </html>
