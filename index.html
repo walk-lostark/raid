@@ -1108,7 +1108,7 @@
       const daySeed = kstDayNumber(Date.now());     // KST 날짜 기준
       const picks = dailyPicks(daySeed, 26, 3);     // 1..26에서 3개
       const imgsHtml = picks.map(n => {
-        const file = String(n).padStart(3, "0") + ".jpg"; // 001.png ~ 026.png
+        const file = String(n).padStart(3, "0") + ".png"; // 001.png ~ 026.png
         return `
           <div class="pick-card">
             <img src="./${file}" width="200" height="200" alt="오늘의 픽 ${file}" loading="lazy">
