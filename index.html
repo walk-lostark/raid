@@ -175,16 +175,19 @@
       font-weight: 900;
     }
 
-    /* ✅ 오늘의 픽(사진 3장) */
+    /* ✅ 오늘의 픽(사진 3장) - (요청 5가지 반영) */
     .pick-section{
       margin-top: 16px;
-      padding-top: 12px;
-      border-top: 1px dashed rgba(0,0,0,0.16);
+      padding-top: 14px;
+      border-top: 1px dashed rgba(0,0,0,0.22); /* 5) 구분선 */
+      position: relative;
+      padding-bottom: 28px; /* 3) 우측 하단 멘트 공간 */
     }
     .pick-title{
       font-weight: 900;
-      margin: 8px 0 10px;
-      font-size: 1.02em;
+      margin: 6px 0 12px;
+      font-size: 1.18em;     /* 1) 조금 크게 */
+      text-align: center;     /* 1) 중앙 */
     }
     .pick-grid{
       display: grid;
@@ -196,20 +199,23 @@
       border-radius: 14px;
       overflow: hidden;
       border: 1px solid rgba(0,0,0,0.10);
-      background: rgba(255,255,255,0.85);
+      background: rgba(255,255,255,0.88);
       box-shadow: 0 8px 18px rgba(0,0,0,0.06);
     }
     .pick-card img{
       width: 100%;
-      aspect-ratio: 1 / 1; /* 정사각형 */
-      object-fit: cover;
+      aspect-ratio: 1 / 1;   /* 정사각형 */
+      object-fit: contain;   /* 2) 잘리지 않게 */
       display: block;
+      background: rgba(255,255,255,0.7);
     }
     .pick-note{
+      position: absolute;    /* 3) 우측 하단 */
+      right: 0;
+      bottom: 0;
       color: rgba(0,0,0,0.55);
       font-weight: 700;
       font-size: 0.9em;
-      margin-top: 8px;
       line-height: 1.25;
     }
 
@@ -654,9 +660,8 @@
       renderGuildList();
     };
 
-    // ✅ 오늘의 픽: "매일" 3장 랜덤(=KST 날짜 기준으로 고정) 만들기
+    // ✅ 오늘의 픽: "매일" 3장 랜덤(=KST 날짜 기준으로 고정)
     function dailyPicks(daySeed, total, count){
-      // 간단 LCG (고정 시드)
       let s = (daySeed >>> 0) + 0x9e3779b9;
       const next = () => {
         s = (1664525 * s + 1013904223) >>> 0;
@@ -665,10 +670,38 @@
 
       const picked = new Set();
       while (picked.size < count) {
-        const r = next() % total; // 0..total-1
-        picked.add(r + 1); // 1..total
+        const r = next() % total;
+        picked.add(r + 1);
       }
       return Array.from(picked);
+    }
+
+    // ✅ (4) 메인 화면에 스텔라 픽 렌더링
+    function renderMainPick(){
+      const box = document.getElementById("mainPickBox");
+      if (!box) return;
+
+      const daySeed = kstDayNumber(Date.now());
+      const picks = dailyPicks(daySeed, 26, 3);
+
+      const imgsHtml = picks.map(n => {
+        const base = String(n).padStart(3, "0");
+        // jpg 우선, 없으면 png로 자동 대체
+        return `
+          <div class="pick-card">
+            <img src="./${base}.jpg" alt="오늘의 픽 ${base}" loading="lazy"
+                 onerror="this.onerror=null; this.src='./${base}.png';">
+          </div>
+        `;
+      }).join("");
+
+      box.innerHTML = `
+        <div class="pick-section">
+          <div class="pick-title">🌟 오늘의 커염 스텔라 픽 🌟</div>
+          <div class="pick-grid">${imgsHtml}</div>
+          <div class="pick-note">매일 3명이 선정돼요.</div>
+        </div>
+      `;
     }
 
     // ---------------- 참여 신청 ----------------
@@ -742,15 +775,6 @@
 
       if (!confirm("해당 신청을 삭제할까요?")) return;
 
-      if (!item.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `submissions/${id}`), { pwHash: newHash });
-        await remove(ref(db, `submissions/${id}`));
-        return;
-      }
-
       const pwPrompt = prompt("삭제하려면 비밀번호를 입력하세요:");
       if (!pwPrompt) return;
       const hash = await sha256Hex(pwPrompt);
@@ -789,14 +813,6 @@
 
       const item = submissions.find(s => s.id === editingSubmissionId);
       if (!item) { alert("대상을 찾을 수 없어요."); return; }
-
-      if (!item.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `submissions/${editingSubmissionId}`), { pwHash: newHash });
-        item.pwHash = newHash;
-      }
 
       const pw = document.getElementById("editSubPw").value.trim();
       if (!pw) { alert("비밀번호를 입력해주세요."); return; }
@@ -895,15 +911,6 @@
 
       if (!confirm("해당 길드원 정보를(전체) 삭제할까요?")) return;
 
-      if (!item.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `guildMembers/${id}`), { pwHash: newHash });
-        await remove(ref(db, `guildMembers/${id}`));
-        return;
-      }
-
       const pw = prompt("삭제하려면 비밀번호를 입력하세요:");
       if (!pw) return;
       const hash = await sha256Hex(pw);
@@ -937,20 +944,12 @@
 
       if (!confirm("이 항목을 삭제할까요?")) return;
 
-      if (!member.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `guildMembers/${memberId}`), { pwHash: newHash });
-        member.pwHash = newHash;
-      } else {
-        const pw = prompt("삭제하려면 비밀번호를 입력하세요:");
-        if (!pw) return;
-        const hash = await sha256Hex(pw);
-        if (hash !== member.pwHash) {
-          alert("비밀번호가 틀렸습니다.");
-          return;
-        }
+      const pw = prompt("삭제하려면 비밀번호를 입력하세요:");
+      if (!pw) return;
+      const hash = await sha256Hex(pw);
+      if (hash !== member.pwHash) {
+        alert("비밀번호가 틀렸습니다.");
+        return;
       }
 
       entries.splice(entryIndex, 1);
@@ -981,20 +980,12 @@
 
       if (entryIndex < 0 || entryIndex >= entries.length) return;
 
-      if (!member.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `guildMembers/${memberId}`), { pwHash: newHash });
-        member.pwHash = newHash;
-      } else {
-        const pw = prompt("수정하려면 비밀번호를 입력하세요:");
-        if (!pw) return;
-        const hash = await sha256Hex(pw);
-        if (hash !== member.pwHash) {
-          alert("비밀번호가 틀렸습니다.");
-          return;
-        }
+      const pw = prompt("수정하려면 비밀번호를 입력하세요:");
+      if (!pw) return;
+      const hash = await sha256Hex(pw);
+      if (hash !== member.pwHash) {
+        alert("비밀번호가 틀렸습니다.");
+        return;
       }
 
       const cur = entries[entryIndex];
@@ -1031,7 +1022,6 @@
         return;
       }
 
-      // members 정규화 + 전투력 정렬
       const normalizedMembers = guildMembers.map(m => {
         const name = (m.displayName || "").trim() || "이름없음";
         let entriesRaw = [];
@@ -1061,7 +1051,6 @@
         return (b.createdAt - a.createdAt);
       });
 
-      // ✅ 검색 필터
       const qRaw = guildSearchQuery.trim();
       const q = qRaw.toLowerCase();
       const filtered = q ? normalizedMembers.filter(m => {
@@ -1104,28 +1093,7 @@
         });
       }
 
-      // 🌟 오늘의 커염 스텔라 픽 🌟
-      const daySeed = kstDayNumber(Date.now());     // KST 날짜 기준
-      const picks = dailyPicks(daySeed, 26, 3);     // 1..26에서 3개
-      const imgsHtml = picks.map(n => {
-        const file = String(n).padStart(3, "0") + ".png"; // 001.png ~ 026.png
-        return `
-          <div class="pick-card">
-            <img src="./${file}" width="200" height="200" alt="오늘의 픽 ${file}" loading="lazy">
-          </div>
-        `;
-      }).join("");
-
-      html += `
-        <div class="pick-section">
-          <div class="pick-title">🌟 오늘의 커염 스텔라 픽 🌟</div>
-          <div class="pick-grid">
-            ${imgsHtml}
-          </div>
-          <div class="pick-note">매일 3명이 선정돼요.</div>
-        </div>
-      `;
-
+      // ✅ (중요) 길드원 화면에는 스텔라 픽을 더 이상 붙이지 않음 (메인으로 이동)
       box.innerHTML = html;
     }
 
@@ -1179,7 +1147,6 @@
         const powerRaw = r.querySelector(".guildPower")?.value ?? "";
         const nickClass = normalizeNickClass(nickClassRaw);
         const power = normalizePower(powerRaw);
-        if (!nickClass && !power) return null;
         if (!nickClass || !power) return null;
         return { nickClass, power };
       }).filter(Boolean);
@@ -1224,22 +1191,12 @@
         return;
       }
 
-      const existingPwHash = foundVal.pwHash;
-
-      if (!existingPwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `guildMembers/${foundId}`), { pwHash: newHash });
-        foundVal.pwHash = newHash;
-      } else {
-        const pw = prompt("기존 닉네임에 반영하려면 비밀번호를 입력하세요:");
-        if (!pw) return;
-        const hash = await sha256Hex(pw);
-        if (hash !== existingPwHash) {
-          alert("비밀번호가 틀렸습니다.");
-          return;
-        }
+      const pw = prompt("기존 닉네임에 반영하려면 비밀번호를 입력하세요:");
+      if (!pw) return;
+      const hash = await sha256Hex(pw);
+      if (hash !== foundVal.pwHash) {
+        alert("비밀번호가 틀렸습니다.");
+        return;
       }
 
       let existingRaw = [];
@@ -1273,9 +1230,13 @@
       await ensureWeeklyReset();
       updateTitle();
 
+      // ✅ 메인 스텔라 픽 렌더
+      renderMainPick();
+
       setInterval(async () => {
         updateTitle();
         await ensureWeeklyReset();
+        renderMainPick(); // 날짜 바뀌면 자동 갱신 느낌
       }, 60 * 1000);
     })();
   </script>
@@ -1321,6 +1282,9 @@
     <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
     <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
     <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
+
+    <!-- ✅ (4) 스텔라 픽: 메인페이지 버튼 아래 -->
+    <div id="mainPickBox"></div>
   </div>
 
   <!-- 참여 명단 보기 화면 -->
