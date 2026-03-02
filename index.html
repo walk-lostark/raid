@@ -143,6 +143,30 @@
       line-height: 1.3;
     }
 
+    /* ✅ 길드원 검색바 */
+    .search-wrap{
+      margin-top: 10px;
+      position: relative;
+    }
+    .search-wrap input{
+      padding-right: 44px;
+    }
+    .clear-search{
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 900;
+      background: rgba(0,0,0,0.06);
+      display: none;
+    }
+    .clear-search:hover{ background: rgba(255,0,0,0.12); }
+
     /* 커스텀 체크박스 */
     .checkbox-group{
       display: flex;
@@ -372,6 +396,9 @@
     let guildMembers = [];
     let editingSubmissionId = null;
 
+    // ✅ 길드원 검색어
+    let guildSearchQuery = "";
+
     // ----- KST 유틸 -----
     const HOUR_MS = 3600 * 1000;
     const DAY_MS  = 24 * HOUR_MS;
@@ -548,6 +575,24 @@
       const check = document.getElementById("etcTimeCheck");
       const input = document.getElementById("etcTimeInput");
       input.style.display = check.checked ? "block" : "none";
+    };
+
+    // ✅ 길드원 검색
+    window.onGuildSearchInput = () => {
+      const el = document.getElementById("guildSearchInput");
+      guildSearchQuery = (el?.value ?? "").trim();
+      const clearBtn = document.getElementById("guildSearchClear");
+      if (clearBtn) clearBtn.style.display = guildSearchQuery ? "block" : "none";
+      renderGuildList();
+    };
+
+    window.clearGuildSearch = () => {
+      const el = document.getElementById("guildSearchInput");
+      if (el) el.value = "";
+      guildSearchQuery = "";
+      const clearBtn = document.getElementById("guildSearchClear");
+      if (clearBtn) clearBtn.style.display = "none";
+      renderGuildList();
     };
 
     // ---------------- 참여 신청 ----------------
@@ -756,6 +801,14 @@
         });
 
         showOnly("guildScreen");
+
+        // 검색 입력 초기화 UI 동기화 (페이지 들어올 때 유지하고 싶으면 아래 2줄 삭제)
+        const input = document.getElementById("guildSearchInput");
+        if (input) input.value = guildSearchQuery;
+
+        const clearBtn = document.getElementById("guildSearchClear");
+        if (clearBtn) clearBtn.style.display = guildSearchQuery ? "block" : "none";
+
         renderGuildList();
       });
     };
@@ -896,12 +949,14 @@
 
     function renderGuildList() {
       const box = document.getElementById("guildListBox");
+      if (!box) return;
 
       if (!guildMembers.length) {
         box.innerHTML = "<p>길드원 명단이 없습니다.</p>";
         return;
       }
 
+      // members 정규화 + 전투력 정렬
       const normalizedMembers = guildMembers.map(m => {
         const name = (m.displayName || "").trim() || "이름없음";
         let entriesRaw = [];
@@ -925,15 +980,30 @@
         };
       });
 
+      // 전체 정렬(최대 전투력 기준)
       normalizedMembers.sort((a,b) => {
         const diff = (b.maxPower - a.maxPower);
         if (diff !== 0) return diff;
         return (b.createdAt - a.createdAt);
       });
 
-      let html = `<p>현재 등록된 길드원 <span style="color:red;font-size:1.3em">${normalizedMembers.length}</span>명</p>`;
+      // ✅ 검색 필터
+      const q = guildSearchQuery.trim().toLowerCase();
+      const filtered = q ? normalizedMembers.filter(m => {
+        const nameHit = (m.displayName || "").toLowerCase().includes(q);
+        const entryHit = (m.entries || []).some(e => (e.nickClass || "").toLowerCase().includes(q));
+        return nameHit || entryHit;
+      }) : normalizedMembers;
 
-      normalizedMembers.forEach(m => {
+      let html = `<p>현재 등록된 길드원 <span style="color:red;font-size:1.3em">${filtered.length}</span>명</p>`;
+
+      if (q && filtered.length === 0) {
+        html += `<p style="margin-top:10px; font-weight:800;">검색 결과가 없어요 🥲</p>`;
+        box.innerHTML = html;
+        return;
+      }
+
+      filtered.forEach(m => {
         const entries = m.entries.length ? m.entries : [{ nickClass: "(정보 없음)", power: "" }];
 
         html += `
@@ -988,12 +1058,12 @@
       const nickInput = document.createElement("input");
       nickInput.type = "text";
       nickInput.className = "guildNickClass";
-      nickInput.placeholder = "(예: 귀염/화술 또는 귀염 화술)";
+      nickInput.placeholder = "닉네임/클래스 (예: 귀염/화술 또는 귀염 화술)";
 
       const powerInput = document.createElement("input");
       powerInput.type = "text";
       powerInput.className = "guildPower";
-      powerInput.placeholder = "(예: 6.0)";
+      powerInput.placeholder = "전투력 (예: 6.0)";
 
       left.appendChild(nickInput);
       right.appendChild(powerInput);
@@ -1147,7 +1217,6 @@
       <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
     </div>
 
-    <!-- ✅ 여기부터 “이미지처럼 예쁜 제목” 적용 -->
     <div class="form-section-title">닉네임/클래스</div>
     <input type="text" id="nickname" placeholder="닉네임/클래스 (예: 귀염/화술 또는 귀염 화술)">
 
@@ -1201,6 +1270,14 @@
       <button class="mini-btn" onclick="openGuildForm()">자기 정보 적기</button>
     </div>
     <div style="height:34px;"></div>
+
+    <!-- ✅ 검색바 추가 -->
+    <div class="form-section-title">아이디 검색</div>
+    <div class="search-wrap">
+      <input type="text" id="guildSearchInput" placeholder="아이디/닉네임/클래스 검색 (예: 귀염, 화술)" oninput="onGuildSearchInput()">
+      <button class="clear-search" id="guildSearchClear" title="검색 지우기" onclick="clearGuildSearch()">×</button>
+    </div>
+
     <div id="guildListBox"></div>
   </div>
 
