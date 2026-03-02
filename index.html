@@ -1,1402 +1,239 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>커염 레이드 일정!</title>
-  <link href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css" rel="stylesheet"/>
-
-  <style>
-    * { box-sizing: border-box; font-family: 'SUIT', sans-serif; }
-
-    body {
-      margin: 0;
-      padding: 30px 10px;
-      text-align: center;
-
-      background-image: url("./00.jpg");
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      background-attachment: fixed;
-
-      min-height: 100vh;
-    }
-
-    body::before{
-      content:"";
-      position: fixed;
-      inset: 0;
-      background: rgba(255,255,255,0.55);
-      pointer-events: none;
-    }
-
-    h1 {
-      font-size: 1.8em;
-      margin: 0 0 20px;
-      position: relative;
-      z-index: 1;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
-    }
-
-    .container {
-      max-width: 520px;
-      margin: 0 auto;
-      background: rgba(255,255,255,0.9);
-      border-radius: 16px;
-      padding: 26px 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.12);
-      position: relative;
-      z-index: 1;
-      text-align: left;
-      backdrop-filter: blur(6px);
-    }
-
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 10px;
-      border: 1px solid #d7d7d7;
-      font-size: 1em;
-      outline: none;
-      transition: border-color .15s ease, box-shadow .15s ease;
-      background: rgba(255,255,255,0.95);
-    }
-    input[type="text"]:focus, input[type="password"]:focus{
-      border-color: #3fa9f5;
-      box-shadow: 0 0 0 4px rgba(63,169,245,0.18);
-    }
-
-    .btn {
-      width: 100%;
-      padding: 11px;
-      margin-top: 10px;
-      border-radius: 10px;
-      border: none;
-      font-weight: 800;
-      font-size: 1em;
-      cursor: pointer;
-      transition: transform .05s ease, filter .15s ease;
-    }
-    .btn:active { transform: translateY(1px); }
-    .btn:hover { filter: brightness(0.98); }
-
-    .btn-submit { background-color: #28a745; color: white; }
-    .btn-view   { background-color: #007bff; color: white; }
-    .btn-guild  { background-color: #6f42c1; color: white; }
-    .btn-save   { background-color: #ff9800; color: white; }
-
-    .top-left-actions{
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      display: flex;
-      gap: 8px;
-      z-index: 2;
-    }
-
-    .back-btn, .mini-btn {
-      color: white;
-      border: none;
-      padding: 7px 12px;
-      border-radius: 10px;
-      font-weight: 800;
-      font-size: 0.95em;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .back-btn { background-color: #3fa9f5; }
-    .mini-btn { background-color: #ff9800; }
-
-    .section-title{
-      font-weight: 800;
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    /* ✅ 섹션 제목(이미지처럼 예쁘게) */
-    .form-section-title{
-      font-weight: 900;
-      font-size: 1.02em;
-      margin-top: 14px;
-      margin-bottom: 6px;
-      color: rgba(0,0,0,0.9);
-    }
-    .form-section-title::before{
-      content: " - ";
-      font-weight: 900;
-    }
-
-    .page-title{
-      font-size: 1.2em;
-      font-weight: 900;
-      margin: 0 0 10px;
-      text-align: left;
-    }
-
-    .help-text{
-      color: rgba(0,0,0,0.6);
-      font-weight: 700;
-      font-size: 0.92em;
-      margin-top: 4px;
-      line-height: 1.3;
-    }
-
-    /* ✅ 길드원 검색바 */
-    .search-wrap{
-      margin-top: 10px;
-      position: relative;
-    }
-    .search-wrap input{
-      padding-right: 44px;
-    }
-    .clear-search{
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 28px;
-      height: 28px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      font-weight: 900;
-      background: rgba(0,0,0,0.06);
-      display: none;
-    }
-    .clear-search:hover{ background: rgba(255,0,0,0.12); }
-
-    /* ✅ 검색 하이라이트 */
-    mark.hl{
-      background: rgba(255, 214, 0, 0.55);
-      padding: 0 3px;
-      border-radius: 6px;
-      font-weight: 900;
-    }
-
-    /* ✅ 오늘의 픽(사진 3장) */
-    .pick-section{
-      margin-top: 16px;
-      padding-top: 12px;
-      border-top: 1px dashed rgba(0,0,0,0.16);
-    }
-    .pick-title{
-      font-weight: 900;
-      margin: 8px 0 10px;
-      font-size: 1.02em;
-    }
-    .pick-grid{
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .pick-card{
-      width: 100%;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.10);
-      background: rgba(255,255,255,0.85);
-      box-shadow: 0 8px 18px rgba(0,0,0,0.06);
-    }
-    .pick-card img{
-      width: 100%;
-      aspect-ratio: 1 / 1; /* 정사각형 */
-      object-fit: cover;
-      display: block;
-    }
-    .pick-note{
-      color: rgba(0,0,0,0.55);
-      font-weight: 700;
-      font-size: 0.9em;
-      margin-top: 8px;
-      line-height: 1.25;
-    }
-
-    /* 커스텀 체크박스 */
-    .checkbox-group{
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin: 10px 0 6px;
-    }
-    .cb input[type="checkbox"]{
-      position: absolute;
-      opacity: 0;
-      width: 1px;
-      height: 1px;
-      margin: 0;
-      pointer-events: none;
-    }
-    .cb{
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(0,0,0,0.12);
-      background: rgba(255,255,255,0.85);
-      cursor: pointer;
-      user-select: none;
-      transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease;
-    }
-    .cb:hover{
-      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-      border-color: rgba(63,169,245,0.55);
-    }
-    .cb:active{ transform: translateY(1px); }
-    .cb .box{
-      width: 18px;
-      height: 18px;
-      border-radius: 4px;
-      border: 2px solid rgba(0,0,0,0.25);
-      display: grid;
-      place-items: center;
-      flex: 0 0 18px;
-      background: #fff;
-      transition: border-color .15s ease, background .15s ease;
-    }
-    .cb .box::after{
-      content: "";
-      width: 9px;
-      height: 5px;
-      border-left: 3px solid transparent;
-      border-bottom: 3px solid transparent;
-      transform: rotate(-45deg);
-      margin-top: -1px;
-      transition: border-color .15s ease;
-    }
-    .cb input[type="checkbox"]:checked + .box{
-      border-color: #3fa9f5;
-      background: rgba(63,169,245,0.12);
-    }
-    .cb input[type="checkbox"]:checked + .box::after{
-      border-left-color: #3fa9f5;
-      border-bottom-color: #3fa9f5;
-    }
-    .cb input[type="checkbox"]:checked ~ .label-text{
-      font-weight: 800;
-    }
-
-    #etcTimeInput { margin-top: 8px; }
-
-    summary { font-weight: 800; cursor: pointer; }
-    ul { list-style: none; padding-left: 0; margin: 10px 0 0; }
-
-    /* 참여 명단 아이템 */
-    .credit-item{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 6px 0;
-      border-bottom: 1px dashed rgba(0,0,0,0.12);
-    }
-    .credit-item:last-child{ border-bottom: none; }
-
-    /* 작은 버튼(공용) */
-    .small-btn{
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:900;
-      padding:6px 10px;
-      background: rgba(0,0,0,0.06);
-      white-space: nowrap;
-    }
-    .small-btn:hover{ background: rgba(63,169,245,0.18); }
-    .small-btn.danger:hover{ background: rgba(255,0,0,0.12); }
-
-    /* 길드원 명단 카드 */
-    .member-card{
-      border: 1px solid rgba(0,0,0,0.1);
-      border-radius: 14px;
-      padding: 10px 12px;
-      margin: 10px 0;
-      background: rgba(255,255,255,0.88);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
-      position: relative;
-    }
-
-    .member-del{
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      border: none;
-      width: 28px;
-      height: 28px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 900;
-      background: rgba(0,0,0,0.06);
-    }
-    .member-del:hover{
-      background: rgba(255,0,0,0.12);
-    }
-
-    .member-details summary{
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding-right: 38px;
-    }
-    .member-details summary::-webkit-details-marker{ display:none; }
-
-    .member-name{
-      font-weight: 900;
-      font-size: 1.05em;
-    }
-
-    .member-lines{
-      margin-top: 8px;
-      border-top: 1px dashed rgba(0,0,0,0.12);
-      padding-top: 8px;
-    }
-
-    .guild-entry-row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:6px 0;
-      border-bottom:1px dashed rgba(0,0,0,0.12);
-    }
-    .guild-entry-row:last-child{ border-bottom:none; }
-
-    .guild-entry-actions{
-      display:flex;
-      gap:6px;
-      flex:0 0 auto;
-    }
-
-    /* 자기 정보 적기 */
-    .add-row{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin: 10px 0 4px;
-      color: rgba(0,0,0,0.7);
-      font-weight: 700;
-    }
-    .plus-btn{
-      width: 36px;
-      height: 36px;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
-      font-size: 1.4em;
-      font-weight: 900;
-      background: rgba(63,169,245,0.18);
-    }
-    .plus-btn:hover{
-      background: rgba(63,169,245,0.28);
-    }
-
-    /* 입력 행(row): 닉네임/클래스 + 전투력 */
-    .entry-row{
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin: 8px 0;
-    }
-    .entry-row input[type="text"]{ margin: 0; }
-    .entry-row .col-left{ flex: 1 1 auto; }
-    .entry-row .col-right{ flex: 0 0 120px; }
-    @media (max-width: 420px){
-      .entry-row{ flex-direction: column; align-items: stretch; }
-      .entry-row .col-right{ flex: 1 1 auto; }
-      .pick-grid{ grid-template-columns: repeat(3, 1fr); }
-    }
-  </style>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      push,
-      onValue,
-      remove,
-      runTransaction,
-      get,
-      update
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyByg8FeU-3woVufxnLoEMhi4t7-CRlS6BI",
-      authDomain: "participation-4f85e.firebaseapp.com",
-      databaseURL: "https://participation-4f85e-default-rtdb.firebaseio.com",
-      projectId: "participation-4f85e",
-      storageBucket: "participation-4f85e.appspot.com",
-      messagingSenderId: "694493909568",
-      appId: "1:694493909568:web:1ebf7b9394e2ddce3d05a5",
-      measurementId: "G-6T8L975CVQ"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    let submissions = [];
-    let guildMembers = [];
-    let editingSubmissionId = null;
-
-    // ✅ 길드원 검색어
-    let guildSearchQuery = "";
-
-    // ----- KST 유틸 -----
-    const HOUR_MS = 3600 * 1000;
-    const DAY_MS  = 24 * HOUR_MS;
-    const KST_OFFSET_MS = 9 * HOUR_MS;
-
-    function kstDayNumber(nowUtcMs = Date.now()) {
-      return Math.floor((nowUtcMs + KST_OFFSET_MS) / DAY_MS);
-    }
-    function kstWeekday(nowUtcMs = Date.now()) {
-      const kst = new Date(nowUtcMs + KST_OFFSET_MS);
-      return kst.getUTCDay();
-    }
-    function dayNumberToKstMD(dayNum) {
-      const utcMs = dayNum * DAY_MS - KST_OFFSET_MS;
-      const kst = new Date(utcMs + KST_OFFSET_MS);
-      return { month: kst.getUTCMonth() + 1, day: kst.getUTCDate() };
-    }
-    function getThisWeekMondayDayNum(nowUtcMs = Date.now()) {
-      const dn = kstDayNumber(nowUtcMs);
-      const wd = kstWeekday(nowUtcMs);
-      const monIndex = (wd + 6) % 7;
-      return dn - monIndex;
-    }
-    function getThisWeekTuesdayReset(nowUtcMs = Date.now()) {
-      const mondayDn = getThisWeekMondayDayNum(nowUtcMs);
-      const tuesdayDn = mondayDn + 1;
-      const resetUtcMs = (tuesdayDn * DAY_MS) - KST_OFFSET_MS;
-      return { resetUtcMs, resetKey: String(tuesdayDn) };
-    }
-    function getTitleMondayDayNum(nowUtcMs = Date.now()) {
-      const mondayDn = getThisWeekMondayDayNum(nowUtcMs);
-      const { resetUtcMs } = getThisWeekTuesdayReset(nowUtcMs);
-      return (nowUtcMs < resetUtcMs) ? mondayDn : (mondayDn + 7);
-    }
-    function updateTitle() {
-      const mondayDn = getTitleMondayDayNum(Date.now());
-      const md = dayNumberToKstMD(mondayDn);
-      const h1 = document.getElementById("pageTitle");
-      h1.textContent = `🐹${md.month}월${md.day}일 커염 길드 레이드 신청🐹`;
-      document.title = `${md.month}월${md.day}일 커염 레이드 신청`;
-    }
-
-    // ✅ 매주 화요일 00시: 참여 신청(submissions)만 초기화 / 길드원(guildMembers)은 유지
-    async function ensureWeeklyReset() {
-      const now = Date.now();
-      const { resetUtcMs, resetKey } = getThisWeekTuesdayReset(now);
-      if (now < resetUtcMs) return;
-
-      const metaRef = ref(db, "meta/lastResetKey");
-      const tx = await runTransaction(metaRef, (current) => {
-        if (current === resetKey) return;
-        return resetKey;
-      });
-
-      if (tx.committed) {
-        await remove(ref(db, "submissions"));
-      }
-    }
-
-    // ---------- 공통 유틸 ----------
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-    function escapeRegExp(str){
-      return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    }
-
-    // ✅ 하이라이트: 검색어 매칭 부분을 <mark class="hl">로 감싸기
-    function highlightHtml(text, query){
-      const safe = escapeHtml(text ?? "");
-      const q = String(query ?? "").trim();
-      if (!q) return safe;
-
-      const re = new RegExp(escapeRegExp(q), "gi");
-      return safe.replace(re, (m) => `<mark class="hl">${m}</mark>`);
-    }
-
-    async function sha256Hex(text) {
-      const enc = new TextEncoder().encode(text);
-      const buf = await crypto.subtle.digest("SHA-256", enc);
-      const arr = Array.from(new Uint8Array(buf));
-      return arr.map(b => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    async function promptNewPassword() {
-      const pw1 = prompt("간단 비밀번호를 설정해주세요 (기억해두세요):");
-      if (!pw1) return null;
-      const pw2 = prompt("비밀번호를 한 번 더 입력해주세요:");
-      if (!pw2) return null;
-      if (pw1 !== pw2) {
-        alert("비밀번호가 일치하지 않습니다.");
-        return null;
-      }
-      return pw1;
-    }
-
-    function normalizePower(value) {
-      return String(value ?? "").replace(/%/g, "").trim();
-    }
-    function powerToNumber(value) {
-      const v = normalizePower(value);
-      const n = Number(v);
-      return Number.isFinite(n) ? n : -Infinity;
-    }
-
-    function normalizeNickClass(value) {
-      const raw = String(value ?? "").trim();
-      if (!raw) return "";
-
-      if (raw.includes("/")) {
-        const [a, b] = raw.split("/").map(s => s.trim());
-        if (a && b) return `${a}/${b}`;
-        return raw;
-      }
-
-      const parts = raw.split(/[,\-|｜|\s]+/).map(s => s.trim()).filter(Boolean);
-      if (parts.length >= 2) return `${parts[0]}/${parts.slice(1).join("")}`;
-      return raw;
-    }
-
-    function normalizeGuildEntry(entry) {
-      if (!entry) return null;
-
-      if (typeof entry === "object") {
-        const nickClass = normalizeNickClass(entry.nickClass ?? entry.nickname ?? "");
-        const power = normalizePower(entry.power ?? entry.percent ?? entry.p ?? "");
-        if (!nickClass && !power) return null;
-        return { nickClass, power };
-      }
-
-      const s = String(entry).trim();
-      if (!s) return null;
-
-      const parts = s.split("/").map(x => x.trim()).filter(Boolean);
-      if (parts.length >= 3) {
-        const power = normalizePower(parts[parts.length - 1]);
-        const nickClass = normalizeNickClass(parts.slice(0, parts.length - 1).join("/"));
-        return { nickClass, power };
-      }
-
-      const m = s.match(/(.+)\s+([0-9]+(\.[0-9]+)?)$/);
-      if (m) return { nickClass: normalizeNickClass(m[1]), power: normalizePower(m[2]) };
-
-      return { nickClass: normalizeNickClass(s), power: "" };
-    }
-
-    function getMaxPower(entries) {
-      let max = -Infinity;
-      for (const e of entries) {
-        const n = powerToNumber(e.power);
-        if (n > max) max = n;
-      }
-      return max;
-    }
-
-    // ✅ 길드원 항목 병합: nickClass 중복이면 "새 값으로 덮어쓰기"
-    function mergeEntriesOverwrite(existingEntries, newEntries) {
-      const keyOf = (s) => String(s ?? "").trim().toLowerCase();
-      const map = new Map();
-
-      for (const e of existingEntries) {
-        if (!e?.nickClass || !e?.power) continue;
-        map.set(keyOf(e.nickClass), { nickClass: e.nickClass, power: normalizePower(e.power) });
-      }
-      for (const e of newEntries) {
-        if (!e?.nickClass || !e?.power) continue;
-        map.set(keyOf(e.nickClass), { nickClass: e.nickClass, power: normalizePower(e.power) });
-      }
-
-      const merged = Array.from(map.values());
-      merged.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
-      return merged;
-    }
-
-    function showOnly(screenId) {
-      const ids = ["mainForm", "creditScreen", "editSubmissionScreen", "guildScreen", "guildFormScreen"];
-      ids.forEach(id => (document.getElementById(id).style.display = (id === screenId ? "block" : "none")));
-    }
-
-    // 체크박스 기타 입력 토글
-    window.toggleEtcInput = () => {
-      const check = document.getElementById("etcTimeCheck");
-      const input = document.getElementById("etcTimeInput");
-      input.style.display = check.checked ? "block" : "none";
-    };
-
-    // ✅ 길드원 검색
-    window.onGuildSearchInput = () => {
-      const el = document.getElementById("guildSearchInput");
-      guildSearchQuery = (el?.value ?? "").trim();
-      const clearBtn = document.getElementById("guildSearchClear");
-      if (clearBtn) clearBtn.style.display = guildSearchQuery ? "block" : "none";
-      renderGuildList();
-    };
-    window.clearGuildSearch = () => {
-      const el = document.getElementById("guildSearchInput");
-      if (el) el.value = "";
-      guildSearchQuery = "";
-      const clearBtn = document.getElementById("guildSearchClear");
-      if (clearBtn) clearBtn.style.display = "none";
-      renderGuildList();
-    };
-
-    // ✅ 오늘의 픽: "매일" 3장 랜덤(=KST 날짜 기준으로 고정) 만들기
-    function dailyPicks(daySeed, total, count){
-      // 간단 LCG (고정 시드)
-      let s = (daySeed >>> 0) + 0x9e3779b9;
-      const next = () => {
-        s = (1664525 * s + 1013904223) >>> 0;
-        return s;
-      };
-
-      const picked = new Set();
-      while (picked.size < count) {
-        const r = next() % total; // 0..total-1
-        picked.add(r + 1); // 1..total
-      }
-      return Array.from(picked);
-    }
-
-    // ---------------- 참여 신청 ----------------
-    window.submitForm = async () => {
-      await ensureWeeklyReset();
-
-      const nicknameRaw = document.getElementById("nickname").value;
-      const powerRaw = document.getElementById("percent").value.trim();
-
-      let selectedTimes = Array.from(document.querySelectorAll('input[name="time"]:checked'))
-        .map(cb => cb.value);
-
-      const etcChecked = document.getElementById("etcTimeCheck").checked;
-      const etcValue = document.getElementById("etcTimeText").value.trim();
-
-      if (etcChecked) {
-        if (!etcValue) { alert("기타 시간을 입력해주세요."); return; }
-        selectedTimes.push(etcValue);
-      }
-
-      const nickname = normalizeNickClass(nicknameRaw);
-      const power = normalizePower(powerRaw);
-
-      if (!nickname || !power || selectedTimes.length === 0) {
-        alert("모든 항목을 입력해주세요.");
-        return;
-      }
-
-      const pw = await promptNewPassword();
-      if (!pw) return;
-      const pwHash = await sha256Hex(pw);
-
-      push(ref(db, "submissions"), {
-        nickname,
-        group: selectedTimes.join(", "),
-        percent: power,
-        pwHash,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      });
-
-      alert("신청 완료! (수정/삭제 시 비밀번호가 필요해요)");
-
-      document.getElementById("nickname").value = "";
-      document.getElementById("percent").value = "";
-      document.getElementById("etcTimeText").value = "";
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-      toggleEtcInput();
-    };
-
-    // ---------------- 참여 명단 보기 ----------------
-    window.showCredits = async () => {
-      await ensureWeeklyReset();
-
-      const submissionsRef = ref(db, "submissions");
-      onValue(submissionsRef, (snapshot) => {
-        submissions = [];
-        snapshot.forEach((childSnapshot) => {
-          submissions.push({ id: childSnapshot.key, ...childSnapshot.val() });
-        });
-
-        showOnly("creditScreen");
-        renderCredits();
-      });
-    };
-
-    // 참여 삭제(비번)
-    window.deleteEntryPublic = async (id) => {
-      const item = submissions.find(s => s.id === id);
-      if (!item) return;
-
-      if (!confirm("해당 신청을 삭제할까요?")) return;
-
-      if (!item.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `submissions/${id}`), { pwHash: newHash });
-        await remove(ref(db, `submissions/${id}`));
-        return;
-      }
-
-      const pwPrompt = prompt("삭제하려면 비밀번호를 입력하세요:");
-      if (!pwPrompt) return;
-      const hash = await sha256Hex(pwPrompt);
-
-      if (hash !== item.pwHash) {
-        alert("비밀번호가 틀렸습니다.");
-        return;
-      }
-
-      await remove(ref(db, `submissions/${id}`));
-    };
-
-    // 참여 수정 화면 열기
-    window.openEditSubmission = (id) => {
-      const item = submissions.find(s => s.id === id);
-      if (!item) return;
-
-      editingSubmissionId = id;
-
-      document.getElementById("editSubGroup").value = item.group || "";
-      document.getElementById("editSubNick").value = item.nickname || "";
-      document.getElementById("editSubPower").value = normalizePower(item.percent);
-      document.getElementById("editSubPw").value = "";
-
-      showOnly("editSubmissionScreen");
-    };
-
-    window.cancelEditSubmission = () => {
-      editingSubmissionId = null;
-      showOnly("creditScreen");
-    };
-
-    // 참여 수정 저장(비번)
-    window.saveEditSubmission = async () => {
-      if (!editingSubmissionId) return;
-
-      const item = submissions.find(s => s.id === editingSubmissionId);
-      if (!item) { alert("대상을 찾을 수 없어요."); return; }
-
-      if (!item.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `submissions/${editingSubmissionId}`), { pwHash: newHash });
-        item.pwHash = newHash;
-      }
-
-      const pw = document.getElementById("editSubPw").value.trim();
-      if (!pw) { alert("비밀번호를 입력해주세요."); return; }
-      const hash = await sha256Hex(pw);
-
-      if (hash !== item.pwHash) {
-        alert("비밀번호가 틀렸습니다.");
-        return;
-      }
-
-      const group = document.getElementById("editSubGroup").value.trim();
-      const nickname = normalizeNickClass(document.getElementById("editSubNick").value);
-      const percent = normalizePower(document.getElementById("editSubPower").value);
-
-      if (!group || !nickname || !percent) {
-        alert("빈 칸 없이 입력해주세요.");
-        return;
-      }
-
-      await update(ref(db, `submissions/${editingSubmissionId}`), {
-        group,
-        nickname,
-        percent,
-        updatedAt: Date.now()
-      });
-
-      alert("수정 완료!");
-      editingSubmissionId = null;
-      showOnly("creditScreen");
-    };
-
-    function renderCredits() {
-      const creditText = document.getElementById("creditText");
-
-      if (submissions.length === 0) {
-        creditText.innerHTML = "<p>명단이 없습니다.</p>";
-        return;
-      }
-
-      const groups = {};
-      submissions.forEach(item => {
-        const g = item.group || "기타";
-        if (!groups[g]) groups[g] = [];
-        groups[g].push(item);
-      });
-
-      let html = `<p>현재 참여한 길드원 <span style="color:red;font-size:1.3em">${submissions.length}</span>명</p>`;
-
-      Object.entries(groups).forEach(([group, list]) => {
-        html += `<details>
-                   <summary>${escapeHtml(group)} / ${list.length}명</summary>
-                   <ul>
-                     ${list.map(p => `
-                       <li class="credit-item">
-                         <span>${escapeHtml(p.nickname)} / ${escapeHtml(normalizePower(p.percent))}</span>
-                         <span style="display:flex; gap:6px;">
-                           <button class="small-btn" onclick="openEditSubmission('${p.id}')">수정</button>
-                           <button class="small-btn danger" onclick="deleteEntryPublic('${p.id}')">삭제</button>
-                         </span>
-                       </li>
-                     `).join("")}
-                   </ul>
-                 </details>`;
-      });
-
-      creditText.innerHTML = html;
-    }
-
-    // ---------------- 길드원 명단 보기 ----------------
-    window.showGuildList = async () => {
-      await ensureWeeklyReset();
-
-      const guildRef = ref(db, "guildMembers");
-      onValue(guildRef, (snapshot) => {
-        guildMembers = [];
-        snapshot.forEach((childSnapshot) => {
-          guildMembers.push({ id: childSnapshot.key, ...childSnapshot.val() });
-        });
-
-        showOnly("guildScreen");
-
-        const input = document.getElementById("guildSearchInput");
-        if (input) input.value = guildSearchQuery;
-
-        const clearBtn = document.getElementById("guildSearchClear");
-        if (clearBtn) clearBtn.style.display = guildSearchQuery ? "block" : "none";
-
-        renderGuildList();
-      });
-    };
-
-    // 길드원 전체 삭제(비번)
-    window.deleteGuildMemberPublic = async (id) => {
-      const item = guildMembers.find(m => m.id === id);
-      if (!item) return;
-
-      if (!confirm("해당 길드원 정보를(전체) 삭제할까요?")) return;
-
-      if (!item.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `guildMembers/${id}`), { pwHash: newHash });
-        await remove(ref(db, `guildMembers/${id}`));
-        return;
-      }
-
-      const pw = prompt("삭제하려면 비밀번호를 입력하세요:");
-      if (!pw) return;
-      const hash = await sha256Hex(pw);
-
-      if (hash !== item.pwHash) {
-        alert("비밀번호가 틀렸습니다.");
-        return;
-      }
-
-      await remove(ref(db, `guildMembers/${id}`));
-    };
-
-    // 길드원 항목 삭제(비번)
-    window.deleteGuildEntry = async (memberId, entryIndex) => {
-      const snap = await get(ref(db, `guildMembers/${memberId}`));
-      if (!snap.exists()) return;
-
-      const member = snap.val();
-
-      let entriesRaw = [];
-      if (Array.isArray(member.entries)) entriesRaw = member.entries;
-      else if (member.entries && typeof member.entries === "object") entriesRaw = Object.values(member.entries);
-
-      let entries = entriesRaw
-        .map(normalizeGuildEntry)
-        .filter(Boolean)
-        .map(e => ({ nickClass: normalizeNickClass(e.nickClass), power: normalizePower(e.power) }))
-        .filter(e => e.nickClass && e.power);
-
-      if (entryIndex < 0 || entryIndex >= entries.length) return;
-
-      if (!confirm("이 항목을 삭제할까요?")) return;
-
-      if (!member.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `guildMembers/${memberId}`), { pwHash: newHash });
-        member.pwHash = newHash;
-      } else {
-        const pw = prompt("삭제하려면 비밀번호를 입력하세요:");
-        if (!pw) return;
-        const hash = await sha256Hex(pw);
-        if (hash !== member.pwHash) {
-          alert("비밀번호가 틀렸습니다.");
-          return;
-        }
-      }
-
-      entries.splice(entryIndex, 1);
-      entries.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
-
-      await update(ref(db, `guildMembers/${memberId}`), {
-        entries,
-        updatedAt: Date.now()
-      });
-    };
-
-    // 길드원 항목 수정(비번)
-    window.editGuildEntry = async (memberId, entryIndex) => {
-      const snap = await get(ref(db, `guildMembers/${memberId}`));
-      if (!snap.exists()) return;
-
-      const member = snap.val();
-
-      let entriesRaw = [];
-      if (Array.isArray(member.entries)) entriesRaw = member.entries;
-      else if (member.entries && typeof member.entries === "object") entriesRaw = Object.values(member.entries);
-
-      let entries = entriesRaw
-        .map(normalizeGuildEntry)
-        .filter(Boolean)
-        .map(e => ({ nickClass: normalizeNickClass(e.nickClass), power: normalizePower(e.power) }))
-        .filter(e => e.nickClass && e.power);
-
-      if (entryIndex < 0 || entryIndex >= entries.length) return;
-
-      if (!member.pwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `guildMembers/${memberId}`), { pwHash: newHash });
-        member.pwHash = newHash;
-      } else {
-        const pw = prompt("수정하려면 비밀번호를 입력하세요:");
-        if (!pw) return;
-        const hash = await sha256Hex(pw);
-        if (hash !== member.pwHash) {
-          alert("비밀번호가 틀렸습니다.");
-          return;
-        }
-      }
-
-      const cur = entries[entryIndex];
-
-      const newNickClassRaw = prompt("닉네임/클래스 수정:", cur.nickClass);
-      if (!newNickClassRaw) return;
-      const newNickClass = normalizeNickClass(newNickClassRaw);
-
-      const newPowerRaw = prompt("전투력 수정:", cur.power);
-      if (!newPowerRaw) return;
-      const newPower = normalizePower(newPowerRaw);
-
-      const keyOf = (s) => String(s ?? "").trim().toLowerCase();
-      const targetKey = keyOf(newNickClass);
-
-      entries.splice(entryIndex, 1);
-      entries = entries.filter(e => keyOf(e.nickClass) !== targetKey);
-
-      entries.push({ nickClass: newNickClass, power: newPower });
-      entries.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
-
-      await update(ref(db, `guildMembers/${memberId}`), {
-        entries,
-        updatedAt: Date.now()
-      });
-    };
-
-    function renderGuildList() {
-      const box = document.getElementById("guildListBox");
-      if (!box) return;
-
-      if (!guildMembers.length) {
-        box.innerHTML = "<p>길드원 명단이 없습니다.</p>";
-        return;
-      }
-
-      // members 정규화 + 전투력 정렬
-      const normalizedMembers = guildMembers.map(m => {
-        const name = (m.displayName || "").trim() || "이름없음";
-        let entriesRaw = [];
-        if (Array.isArray(m.entries)) entriesRaw = m.entries;
-        else if (m.entries && typeof m.entries === "object") entriesRaw = Object.values(m.entries);
-
-        const entries = entriesRaw
-          .map(normalizeGuildEntry)
-          .filter(Boolean)
-          .map(e => ({ nickClass: normalizeNickClass(e.nickClass), power: normalizePower(e.power) }))
-          .filter(e => e.nickClass && e.power);
-
-        entries.sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
-
-        return {
-          id: m.id,
-          displayName: name,
-          entries,
-          maxPower: getMaxPower(entries),
-          createdAt: m.createdAt || 0
-        };
-      });
-
-      normalizedMembers.sort((a,b) => {
-        const diff = (b.maxPower - a.maxPower);
-        if (diff !== 0) return diff;
-        return (b.createdAt - a.createdAt);
-      });
-
-      // ✅ 검색 필터
-      const qRaw = guildSearchQuery.trim();
-      const q = qRaw.toLowerCase();
-      const filtered = q ? normalizedMembers.filter(m => {
-        const nameHit = (m.displayName || "").toLowerCase().includes(q);
-        const entryHit = (m.entries || []).some(e => (e.nickClass || "").toLowerCase().includes(q));
-        return nameHit || entryHit;
-      }) : normalizedMembers;
-
-      let html = `<p>현재 등록된 길드원 <span style="color:red;font-size:1.3em">${filtered.length}</span>명</p>`;
-
-      if (q && filtered.length === 0) {
-        html += `<p style="margin-top:10px; font-weight:800;">검색 결과가 없어요 🥲</p>`;
-      } else {
-        filtered.forEach(m => {
-          const entries = m.entries.length ? m.entries : [{ nickClass: "(정보 없음)", power: "" }];
-
-          html += `
-            <div class="member-card">
-              <button class="member-del" title="전체 삭제" onclick="deleteGuildMemberPublic('${m.id}')">×</button>
-
-              <details class="member-details">
-                <summary>
-                  <span class="member-name">🐹 ${highlightHtml(m.displayName, qRaw)}</span>
-                </summary>
-
-                <div class="member-lines">
-                  ${entries.map((e, idx) => `
-                    <div class="guild-entry-row">
-                      <div>${highlightHtml(e.nickClass, qRaw)}${e.power ? " / " + escapeHtml(normalizePower(e.power)) : ""}</div>
-                      <div class="guild-entry-actions">
-                        <button class="small-btn" onclick="editGuildEntry('${m.id}', ${idx})">수정</button>
-                        <button class="small-btn danger" onclick="deleteGuildEntry('${m.id}', ${idx})">삭제</button>
-                      </div>
-                    </div>
-                  `).join("")}
-                </div>
-              </details>
-            </div>
-          `;
-        });
-      }
-
-      // 🌟 오늘의 커염 스텔라 픽 🌟
-      const daySeed = kstDayNumber(Date.now());     // KST 날짜 기준
-      const picks = dailyPicks(daySeed, 26, 3);     // 1..26에서 3개
-      const imgsHtml = picks.map(n => {
-        const file = String(n).padStart(3, "0") + ".png"; // 001.png ~ 026.png
-        return `
-          <div class="pick-card">
-            <img src="./${file}" width="200" height="200" alt="오늘의 픽 ${file}" loading="lazy">
-          </div>
-        `;
-      }).join("");
-
-      html += `
-        <div class="pick-section">
-          <div class="pick-title">🌟 오늘의 커염 스텔라 픽 🌟</div>
-          <div class="pick-grid">
-            ${imgsHtml}
-          </div>
-          <div class="pick-note">매일 3명이 선정돼요.</div>
-        </div>
-      `;
-
-      box.innerHTML = html;
-    }
-
-    // ---------------- 자기 정보 적기 ----------------
-    window.openGuildForm = () => {
-      document.getElementById("guildDisplayName").value = "";
-      const holder = document.getElementById("entryFields");
-      holder.innerHTML = "";
-      addEntryField();
-      showOnly("guildFormScreen");
-    };
-
-    window.addEntryField = () => addEntryField();
-    function addEntryField() {
-      const holder = document.getElementById("entryFields");
-
-      const row = document.createElement("div");
-      row.className = "entry-row";
-
-      const left = document.createElement("div");
-      left.className = "col-left";
-      const right = document.createElement("div");
-      right.className = "col-right";
-
-      const nickInput = document.createElement("input");
-      nickInput.type = "text";
-      nickInput.className = "guildNickClass";
-      nickInput.placeholder = "닉네임/클래스 (예: 귀염/화술 또는 귀염 화술)";
-
-      const powerInput = document.createElement("input");
-      powerInput.type = "text";
-      powerInput.className = "guildPower";
-      powerInput.placeholder = "전투력 (예: 6.0)";
-
-      left.appendChild(nickInput);
-      right.appendChild(powerInput);
-      row.appendChild(left);
-      row.appendChild(right);
-
-      holder.appendChild(row);
-    }
-
-    // 길드원 저장: displayName 동일이면 기존 업데이트 + nickClass 중복 덮어쓰기 + 비번
-    window.submitGuildInfo = async () => {
-      const displayName = document.getElementById("guildDisplayName").value.trim();
-      if (!displayName) { alert("불리고 싶은 닉네임을 입력해주세요."); return; }
-
-      const rows = Array.from(document.querySelectorAll("#entryFields .entry-row"));
-      const newEntries = rows.map(r => {
-        const nickClassRaw = r.querySelector(".guildNickClass")?.value ?? "";
-        const powerRaw = r.querySelector(".guildPower")?.value ?? "";
-        const nickClass = normalizeNickClass(nickClassRaw);
-        const power = normalizePower(powerRaw);
-        if (!nickClass && !power) return null;
-        if (!nickClass || !power) return null;
-        return { nickClass, power };
-      }).filter(Boolean);
-
-      if (!newEntries.length) {
-        alert("닉네임/클래스와 전투력을 1개 이상 입력해주세요.");
-        return;
-      }
-
-      const snap = await get(ref(db, "guildMembers"));
-      let foundId = null;
-      let foundVal = null;
-
-      if (snap.exists()) {
-        snap.forEach(child => {
-          const v = child.val() || {};
-          const name = String(v.displayName || "").trim();
-          if (name && name.toLowerCase() === displayName.toLowerCase()) {
-            foundId = child.key;
-            foundVal = v;
-          }
-        });
-      }
-
-      if (!foundId) {
-        const pw = await promptNewPassword();
-        if (!pw) return;
-        const pwHash = await sha256Hex(pw);
-
-        const sortedNew = [...newEntries].sort((a,b) => powerToNumber(b.power) - powerToNumber(a.power));
-
-        await push(ref(db, "guildMembers"), {
-          displayName,
-          entries: sortedNew,
-          pwHash,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        });
-
-        alert("입력 완료! (수정/삭제 시 비밀번호가 필요해요)");
-        showGuildList();
-        return;
-      }
-
-      const existingPwHash = foundVal.pwHash;
-
-      if (!existingPwHash) {
-        const newPw = await promptNewPassword();
-        if (!newPw) return;
-        const newHash = await sha256Hex(newPw);
-        await update(ref(db, `guildMembers/${foundId}`), { pwHash: newHash });
-        foundVal.pwHash = newHash;
-      } else {
-        const pw = prompt("기존 닉네임에 반영하려면 비밀번호를 입력하세요:");
-        if (!pw) return;
-        const hash = await sha256Hex(pw);
-        if (hash !== existingPwHash) {
-          alert("비밀번호가 틀렸습니다.");
-          return;
-        }
-      }
-
-      let existingRaw = [];
-      if (Array.isArray(foundVal.entries)) existingRaw = foundVal.entries;
-      else if (foundVal.entries && typeof foundVal.entries === "object") existingRaw = Object.values(foundVal.entries);
-
-      const existingEntries = existingRaw
-        .map(normalizeGuildEntry)
-        .filter(Boolean)
-        .map(e => ({ nickClass: normalizeNickClass(e.nickClass), power: normalizePower(e.power) }))
-        .filter(e => e.nickClass && e.power);
-
-      const merged = mergeEntriesOverwrite(existingEntries, newEntries);
-
-      await update(ref(db, `guildMembers/${foundId}`), {
-        entries: merged,
-        updatedAt: Date.now()
-      });
-
-      alert("기존 닉네임에 정보가 반영되었습니다! (중복 닉/클은 덮어쓰기)");
-      showGuildList();
-    };
-
-    // 뒤로가기
-    window.goBackToMain = () => showOnly("mainForm");
-    window.goBackToGuild = () => showOnly("guildScreen");
-
-    // ---------------- 시작 ----------------
-    (async function boot() {
-      updateTitle();
-      await ensureWeeklyReset();
-      updateTitle();
-
-      setInterval(async () => {
-        updateTitle();
-        await ensureWeeklyReset();
-      }, 60 * 1000);
-    })();
-  </script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>커염 레이드 일정!</title>
+
+<link href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css" rel="stylesheet"/>
+
+<style>
+*{box-sizing:border-box;font-family:'SUIT',sans-serif}
+
+body{
+margin:0;
+padding:30px 10px;
+text-align:center;
+background-image:url("./00.jpg");
+background-size:cover;
+background-position:center;
+background-repeat:no-repeat;
+background-attachment:fixed;
+min-height:100vh;
+}
+
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background:rgba(255,255,255,0.55);
+pointer-events:none;
+}
+
+h1{
+font-size:1.8em;
+margin:0 0 20px;
+position:relative;
+z-index:1;
+text-shadow:0 1px 0 rgba(255,255,255,0.6);
+}
+
+.container{
+max-width:520px;
+margin:0 auto;
+background:rgba(255,255,255,0.92);
+border-radius:16px;
+padding:26px 20px;
+box-shadow:0 10px 25px rgba(0,0,0,0.12);
+position:relative;
+z-index:1;
+text-align:left;
+backdrop-filter:blur(6px);
+}
+
+input[type="text"],input[type="password"]{
+width:100%;
+padding:12px;
+margin:8px 0;
+border-radius:10px;
+border:1px solid #d7d7d7;
+font-size:1em;
+outline:none;
+background:#fff;
+}
+
+.btn{
+width:100%;
+padding:11px;
+margin-top:10px;
+border-radius:10px;
+border:none;
+font-weight:800;
+font-size:1em;
+cursor:pointer;
+}
+
+.btn-submit{background:#28a745;color:#fff}
+.btn-view{background:#007bff;color:#fff}
+.btn-guild{background:#6f42c1;color:#fff}
+.btn-save{background:#ff9800;color:#fff}
+
+.section-title{font-weight:800;margin-bottom:8px;display:block}
+
+.form-section-title{
+font-weight:900;
+font-size:1.05em;
+margin-top:14px;
+margin-bottom:6px;
+}
+.form-section-title::before{content:" - ";}
+
+.checkbox-group{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 6px}
+.cb input{display:none}
+.cb{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:10px 12px;
+border-radius:12px;
+border:1px solid rgba(0,0,0,0.12);
+background:#fff;
+cursor:pointer;
+}
+.cb .box{
+width:18px;height:18px;border-radius:4px;border:2px solid #aaa;
+}
+.cb input:checked + .box{background:#3fa9f5;border-color:#3fa9f5}
+
+.pick-section{
+margin-top:18px;
+padding-top:16px;
+border-top:1px dashed rgba(0,0,0,0.25);
+position:relative;
+padding-bottom:28px;
+}
+.pick-title{
+text-align:center;
+font-weight:900;
+font-size:1.2em;
+margin-bottom:12px;
+}
+.pick-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:12px;
+}
+.pick-card{
+border-radius:16px;
+overflow:hidden;
+background:#fff;
+box-shadow:0 8px 18px rgba(0,0,0,0.06);
+}
+.pick-card img{
+width:100%;
+aspect-ratio:1/1;
+object-fit:contain;
+background:#fff;
+}
+.pick-note{
+position:absolute;
+right:0;
+bottom:0;
+font-size:0.9em;
+color:rgba(0,0,0,0.55);
+font-weight:700;
+}
+</style>
 </head>
 
 <body>
-  <h1 id="pageTitle">🐹커염 길드 레이드 신청🐹</h1>
 
-  <!-- 메인 화면 -->
-  <div class="container" id="mainForm">
-    <span class="section-title">참여 가능 시간 (복수 선택 가능)</span>
+<h1 id="pageTitle">🐹커염 길드 레이드 신청🐹</h1>
 
-    <div class="checkbox-group">
-      <label class="cb">
-        <input type="checkbox" name="time" value="9시">
-        <span class="box"></span>
-        <span class="label-text">9시</span>
-      </label>
+<div class="container" id="mainForm">
 
-      <label class="cb">
-        <input type="checkbox" name="time" value="9시반">
-        <span class="box"></span>
-        <span class="label-text">9시 반</span>
-      </label>
+<span class="section-title">참여 가능 시간 (복수 선택 가능)</span>
 
-      <label class="cb">
-        <input type="checkbox" id="etcTimeCheck" onchange="toggleEtcInput()">
-        <span class="box"></span>
-        <span class="label-text">기타</span>
-      </label>
-    </div>
+<div class="checkbox-group">
+<label class="cb">
+<input type="checkbox" name="time" value="9시">
+<span class="box"></span>9시
+</label>
+<label class="cb">
+<input type="checkbox" name="time" value="9시반">
+<span class="box"></span>9시 반
+</label>
+</div>
 
-    <div id="etcTimeInput" style="display:none;">
-      <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
-    </div>
+<div class="form-section-title">닉네임/클래스</div>
+<input type="text" id="nickname">
 
-    <div class="form-section-title">닉네임/클래스</div>
-    <input type="text" id="nickname" placeholder="닉네임/클래스 (예: 귀염/화술 또는 귀염 화술)">
+<div class="form-section-title">전투력</div>
+<input type="text" id="percent">
 
-    <div class="form-section-title">전투력</div>
-    <input type="text" id="percent" placeholder="전투력 (예: 6.0)">
+<button class="btn btn-submit">신청하기</button>
+<button class="btn btn-view">참여 명단 보기</button>
+<button class="btn btn-guild">길드원 명단 보기</button>
 
-    <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
-    <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
-    <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
-  </div>
+<div id="mainPickBox"></div>
 
-  <!-- 참여 명단 보기 화면 -->
-  <div class="container" id="creditScreen" style="display:none;">
-    <div class="top-left-actions">
-      <button class="back-btn" onclick="goBackToMain()">뒤로가기</button>
-    </div>
-    <div style="height:34px;"></div>
-    <div id="creditText"></div>
-  </div>
+</div>
 
-  <!-- 참여 정보 수정 화면 -->
-  <div class="container" id="editSubmissionScreen" style="display:none;">
-    <div class="top-left-actions">
-      <button class="back-btn" onclick="cancelEditSubmission()">뒤로가기</button>
-    </div>
-    <div style="height:34px;"></div>
+<script>
+const HOUR_MS=3600*1000;
+const DAY_MS=24*HOUR_MS;
+const KST_OFFSET=9*HOUR_MS;
 
-    <div class="page-title">참여 정보 수정</div>
-    <div class="help-text">비밀번호를 입력해야 수정이 저장돼요.</div>
+function kstDayNumber(){
+return Math.floor((Date.now()+KST_OFFSET)/DAY_MS);
+}
 
-    <div class="form-section-title">참여시간</div>
-    <input type="text" id="editSubGroup" placeholder="예: 9시, 9시반, 10시">
+function dailyPicks(seed,total,count){
+let s=(seed>>>0)+0x9e3779b9;
+const next=()=>{s=(1664525*s+1013904223)>>>0;return s;}
+const set=new Set();
+while(set.size<count){
+set.add((next()%total)+1);
+}
+return Array.from(set);
+}
 
-    <div class="form-section-title">닉네임/클래스</div>
-    <input type="text" id="editSubNick" placeholder="예: 귀염/화술 (또는 귀염 화술)">
+function renderMainDailyPick(){
+const box=document.getElementById("mainPickBox");
+const seed=kstDayNumber();
+const picks=dailyPicks(seed,26,3);
 
-    <div class="form-section-title">전투력</div>
-    <input type="text" id="editSubPower" placeholder="예: 6.0">
+const html=picks.map(n=>{
+const file=String(n).padStart(3,"0")+".jpg";
+return `<div class="pick-card">
+<img src="./${file}" alt="">
+</div>`;
+}).join("");
 
-    <div class="form-section-title">비밀번호</div>
-    <input type="password" id="editSubPw" placeholder="설정했던 비밀번호 입력">
+box.innerHTML=`
+<div class="pick-section">
+<div class="pick-title">🌟 오늘의 커염 스텔라 픽 🌟</div>
+<div class="pick-grid">${html}</div>
+<div class="pick-note">매일 3명이 선정돼요.</div>
+</div>`;
+}
 
-    <button class="btn btn-save" onclick="saveEditSubmission()">저장하기</button>
-    <button class="btn btn-view" onclick="cancelEditSubmission()">참여 명단으로 돌아가기</button>
-  </div>
+function updateTitle(){
+const now=new Date();
+const monday=new Date(now);
+monday.setDate(now.getDate()-((now.getDay()+6)%7));
+document.getElementById("pageTitle").textContent=
+`🐹${monday.getMonth()+1}월${monday.getDate()}일 커염 길드 레이드 신청🐹`;
+}
 
-  <!-- 길드원 명단 보기 화면 -->
-  <div class="container" id="guildScreen" style="display:none;">
-    <div class="top-left-actions">
-      <button class="back-btn" onclick="goBackToMain()">뒤로가기</button>
-      <button class="mini-btn" onclick="openGuildForm()">자기 정보 적기</button>
-    </div>
-    <div style="height:34px;"></div>
+updateTitle();
+renderMainDailyPick();
+setInterval(()=>{
+updateTitle();
+renderMainDailyPick();
+},60000);
 
-    <div class="form-section-title">아이디 검색</div>
-    <div class="search-wrap">
-      <input type="text" id="guildSearchInput" placeholder="아이디/닉네임/클래스 검색 (예: 귀염, 화술)" oninput="onGuildSearchInput()">
-      <button class="clear-search" id="guildSearchClear" title="검색 지우기" onclick="clearGuildSearch()">×</button>
-    </div>
+</script>
 
-    <div id="guildListBox"></div>
-  </div>
-
-  <!-- 자기 정보 적기 화면 -->
-  <div class="container" id="guildFormScreen" style="display:none;">
-    <div class="top-left-actions">
-      <button class="back-btn" onclick="goBackToGuild()">뒤로가기</button>
-    </div>
-    <div style="height:34px;"></div>
-
-    <div class="page-title">자기 정보 적기</div>
-
-    <div class="form-section-title">불리고 싶은 닉네임</div>
-    <input type="text" id="guildDisplayName" placeholder="예: 귀염이">
-
-    <div class="form-section-title">닉네임/클래스 & 전투력</div>
-    <div id="entryFields"></div>
-
-    <div class="add-row">
-      <span>추가로 입력하려면 +를 눌러주세요.</span>
-      <button class="plus-btn" title="추가" onclick="addEntryField()">+</button>
-    </div>
-
-    <button class="btn btn-submit" onclick="submitGuildInfo()">입력하기</button>
-    <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
-  </div>
 </body>
 </html>
