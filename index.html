@@ -167,6 +167,52 @@
     }
     .clear-search:hover{ background: rgba(255,0,0,0.12); }
 
+    /* ✅ 검색 하이라이트 */
+    mark.hl{
+      background: rgba(255, 214, 0, 0.55);
+      padding: 0 3px;
+      border-radius: 6px;
+      font-weight: 900;
+    }
+
+    /* ✅ 오늘의 픽(사진 3장) */
+    .pick-section{
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px dashed rgba(0,0,0,0.16);
+    }
+    .pick-title{
+      font-weight: 900;
+      margin: 8px 0 10px;
+      font-size: 1.02em;
+    }
+    .pick-grid{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .pick-card{
+      width: 100%;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+    }
+    .pick-card img{
+      width: 100%;
+      aspect-ratio: 1 / 1; /* 정사각형 */
+      object-fit: cover;
+      display: block;
+    }
+    .pick-note{
+      color: rgba(0,0,0,0.55);
+      font-weight: 700;
+      font-size: 0.9em;
+      margin-top: 8px;
+      line-height: 1.25;
+    }
+
     /* 커스텀 체크박스 */
     .checkbox-group{
       display: flex;
@@ -362,6 +408,7 @@
     @media (max-width: 420px){
       .entry-row{ flex-direction: column; align-items: stretch; }
       .entry-row .col-right{ flex: 1 1 auto; }
+      .pick-grid{ grid-template-columns: repeat(3, 1fr); }
     }
   </style>
 
@@ -466,6 +513,19 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+    function escapeRegExp(str){
+      return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    // ✅ 하이라이트: 검색어 매칭 부분을 <mark class="hl">로 감싸기
+    function highlightHtml(text, query){
+      const safe = escapeHtml(text ?? "");
+      const q = String(query ?? "").trim();
+      if (!q) return safe;
+
+      const re = new RegExp(escapeRegExp(q), "gi");
+      return safe.replace(re, (m) => `<mark class="hl">${m}</mark>`);
     }
 
     async function sha256Hex(text) {
@@ -585,7 +645,6 @@
       if (clearBtn) clearBtn.style.display = guildSearchQuery ? "block" : "none";
       renderGuildList();
     };
-
     window.clearGuildSearch = () => {
       const el = document.getElementById("guildSearchInput");
       if (el) el.value = "";
@@ -594,6 +653,23 @@
       if (clearBtn) clearBtn.style.display = "none";
       renderGuildList();
     };
+
+    // ✅ 오늘의 픽: "매일" 3장 랜덤(=KST 날짜 기준으로 고정) 만들기
+    function dailyPicks(daySeed, total, count){
+      // 간단 LCG (고정 시드)
+      let s = (daySeed >>> 0) + 0x9e3779b9;
+      const next = () => {
+        s = (1664525 * s + 1013904223) >>> 0;
+        return s;
+      };
+
+      const picked = new Set();
+      while (picked.size < count) {
+        const r = next() % total; // 0..total-1
+        picked.add(r + 1); // 1..total
+      }
+      return Array.from(picked);
+    }
 
     // ---------------- 참여 신청 ----------------
     window.submitForm = async () => {
@@ -802,7 +878,6 @@
 
         showOnly("guildScreen");
 
-        // 검색 입력 초기화 UI 동기화 (페이지 들어올 때 유지하고 싶으면 아래 2줄 삭제)
         const input = document.getElementById("guildSearchInput");
         if (input) input.value = guildSearchQuery;
 
@@ -980,7 +1055,6 @@
         };
       });
 
-      // 전체 정렬(최대 전투력 기준)
       normalizedMembers.sort((a,b) => {
         const diff = (b.maxPower - a.maxPower);
         if (diff !== 0) return diff;
@@ -988,7 +1062,8 @@
       });
 
       // ✅ 검색 필터
-      const q = guildSearchQuery.trim().toLowerCase();
+      const qRaw = guildSearchQuery.trim();
+      const q = qRaw.toLowerCase();
       const filtered = q ? normalizedMembers.filter(m => {
         const nameHit = (m.displayName || "").toLowerCase().includes(q);
         const entryHit = (m.entries || []).some(e => (e.nickClass || "").toLowerCase().includes(q));
@@ -999,37 +1074,57 @@
 
       if (q && filtered.length === 0) {
         html += `<p style="margin-top:10px; font-weight:800;">검색 결과가 없어요 🥲</p>`;
-        box.innerHTML = html;
-        return;
+      } else {
+        filtered.forEach(m => {
+          const entries = m.entries.length ? m.entries : [{ nickClass: "(정보 없음)", power: "" }];
+
+          html += `
+            <div class="member-card">
+              <button class="member-del" title="전체 삭제" onclick="deleteGuildMemberPublic('${m.id}')">×</button>
+
+              <details class="member-details">
+                <summary>
+                  <span class="member-name">🐹 ${highlightHtml(m.displayName, qRaw)}</span>
+                </summary>
+
+                <div class="member-lines">
+                  ${entries.map((e, idx) => `
+                    <div class="guild-entry-row">
+                      <div>${highlightHtml(e.nickClass, qRaw)}${e.power ? " / " + escapeHtml(normalizePower(e.power)) : ""}</div>
+                      <div class="guild-entry-actions">
+                        <button class="small-btn" onclick="editGuildEntry('${m.id}', ${idx})">수정</button>
+                        <button class="small-btn danger" onclick="deleteGuildEntry('${m.id}', ${idx})">삭제</button>
+                      </div>
+                    </div>
+                  `).join("")}
+                </div>
+              </details>
+            </div>
+          `;
+        });
       }
 
-      filtered.forEach(m => {
-        const entries = m.entries.length ? m.entries : [{ nickClass: "(정보 없음)", power: "" }];
-
-        html += `
-          <div class="member-card">
-            <button class="member-del" title="전체 삭제" onclick="deleteGuildMemberPublic('${m.id}')">×</button>
-
-            <details class="member-details">
-              <summary>
-                <span class="member-name">🐹 ${escapeHtml(m.displayName)}</span>
-              </summary>
-
-              <div class="member-lines">
-                ${entries.map((e, idx) => `
-                  <div class="guild-entry-row">
-                    <div>${escapeHtml(e.nickClass)}${e.power ? " / " + escapeHtml(normalizePower(e.power)) : ""}</div>
-                    <div class="guild-entry-actions">
-                      <button class="small-btn" onclick="editGuildEntry('${m.id}', ${idx})">수정</button>
-                      <button class="small-btn danger" onclick="deleteGuildEntry('${m.id}', ${idx})">삭제</button>
-                    </div>
-                  </div>
-                `).join("")}
-              </div>
-            </details>
+      // ✅ 오늘의 커염 스텔라 픽(매일 3장 랜덤)
+      const daySeed = kstDayNumber(Date.now());     // KST 날짜 기준
+      const picks = dailyPicks(daySeed, 26, 3);     // 1..26에서 3개
+      const imgsHtml = picks.map(n => {
+        const file = String(n).padStart(3, "0") + ".jpg"; // 001.png ~ 026.png
+        return `
+          <div class="pick-card">
+            <img src="./${file}" width="200" height="200" alt="오늘의 픽 ${file}" loading="lazy">
           </div>
         `;
-      });
+      }).join("");
+
+      html += `
+        <div class="pick-section">
+          <div class="pick-title">오늘의 커염 스텔라 픽</div>
+          <div class="pick-grid">
+            ${imgsHtml}
+          </div>
+          <div class="pick-note">매일 3장이 랜덤으로 바뀌어요 (KST 기준).</div>
+        </div>
+      `;
 
       box.innerHTML = html;
     }
@@ -1271,10 +1366,9 @@
     </div>
     <div style="height:34px;"></div>
 
-    <!-- ✅ 검색바 추가 -->
     <div class="form-section-title">아이디 검색</div>
     <div class="search-wrap">
-      <input type="text" id="guildSearchInput" placeholder="닉네임/클래스 검색 (예: 귀염, 화술)" oninput="onGuildSearchInput()">
+      <input type="text" id="guildSearchInput" placeholder="아이디/닉네임/클래스 검색 (예: 귀염, 화술)" oninput="onGuildSearchInput()">
       <button class="clear-search" id="guildSearchClear" title="검색 지우기" onclick="clearGuildSearch()">×</button>
     </div>
 
