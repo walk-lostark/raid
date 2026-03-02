@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>커염 레이드 일정!</title>
-
 <link href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css" rel="stylesheet"/>
 
 <style>
@@ -41,7 +40,7 @@ text-shadow:0 1px 0 rgba(255,255,255,0.6);
 .container{
 max-width:520px;
 margin:0 auto;
-background:rgba(255,255,255,0.92);
+background:rgba(255,255,255,0.9);
 border-radius:16px;
 padding:26px 20px;
 box-shadow:0 10px 25px rgba(0,0,0,0.12);
@@ -58,7 +57,6 @@ margin:8px 0;
 border-radius:10px;
 border:1px solid #d7d7d7;
 font-size:1em;
-outline:none;
 background:#fff;
 }
 
@@ -76,7 +74,6 @@ cursor:pointer;
 .btn-submit{background:#28a745;color:#fff}
 .btn-view{background:#007bff;color:#fff}
 .btn-guild{background:#6f42c1;color:#fff}
-.btn-save{background:#ff9800;color:#fff}
 
 .section-title{font-weight:800;margin-bottom:8px;display:block}
 
@@ -105,44 +102,54 @@ width:18px;height:18px;border-radius:4px;border:2px solid #aaa;
 }
 .cb input:checked + .box{background:#3fa9f5;border-color:#3fa9f5}
 
+/* ------------------ 스텔라 픽 ------------------ */
 .pick-section{
 margin-top:18px;
-padding-top:16px;
-border-top:1px dashed rgba(0,0,0,0.25);
+padding-top:18px;
+border-top:1px dashed rgba(0,0,0,0.25); /* ✅ 버튼 아래 구분선 */
 position:relative;
-padding-bottom:28px;
+padding-bottom:30px;
 }
+
 .pick-title{
-text-align:center;
+text-align:center;         /* ✅ 중앙 */
 font-weight:900;
-font-size:1.2em;
-margin-bottom:12px;
+font-size:1.2em;           /* ✅ 약간 크게 */
+margin-bottom:14px;
 }
+
 .pick-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
 gap:12px;
 }
+
 .pick-card{
 border-radius:16px;
 overflow:hidden;
 background:#fff;
 box-shadow:0 8px 18px rgba(0,0,0,0.06);
+display:flex;
+align-items:center;
+justify-content:center;
 }
+
 .pick-card img{
 width:100%;
 aspect-ratio:1/1;
-object-fit:contain;
+object-fit:contain;        /* ✅ 잘리지 않도록 */
 background:#fff;
 }
+
 .pick-note{
-position:absolute;
+position:absolute;         /* ✅ 우측 하단 */
 right:0;
 bottom:0;
 font-size:0.9em;
 color:rgba(0,0,0,0.55);
 font-weight:700;
 }
+/* ------------------------------------------------ */
 </style>
 </head>
 
@@ -159,6 +166,7 @@ font-weight:700;
 <input type="checkbox" name="time" value="9시">
 <span class="box"></span>9시
 </label>
+
 <label class="cb">
 <input type="checkbox" name="time" value="9시반">
 <span class="box"></span>9시 반
@@ -175,6 +183,7 @@ font-weight:700;
 <button class="btn btn-view">참여 명단 보기</button>
 <button class="btn btn-guild">길드원 명단 보기</button>
 
+<!-- ✅ 스텔라 픽 위치 이동 (메인페이지 버튼 아래) -->
 <div id="mainPickBox"></div>
 
 </div>
@@ -218,21 +227,8 @@ box.innerHTML=`
 </div>`;
 }
 
-function updateTitle(){
-const now=new Date();
-const monday=new Date(now);
-monday.setDate(now.getDate()-((now.getDay()+6)%7));
-document.getElementById("pageTitle").textContent=
-`🐹${monday.getMonth()+1}월${monday.getDate()}일 커염 길드 레이드 신청🐹`;
-}
-
-updateTitle();
 renderMainDailyPick();
-setInterval(()=>{
-updateTitle();
-renderMainDailyPick();
-},60000);
-
+setInterval(renderMainDailyPick,60000);
 </script>
 
 </body>
