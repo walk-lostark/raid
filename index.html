@@ -52,7 +52,7 @@
       backdrop-filter: blur(6px);
     }
 
-    input[type="text"], input[type="password"] {
+    input[type="text"], input[type="password"], input[type="datetime-local"] {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
@@ -63,7 +63,9 @@
       transition: border-color .15s ease, box-shadow .15s ease;
       background: rgba(255,255,255,0.95);
     }
-    input[type="text"]:focus, input[type="password"]:focus{
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="datetime-local"]:focus{
       border-color: #3fa9f5;
       box-shadow: 0 0 0 4px rgba(63,169,245,0.18);
     }
@@ -86,6 +88,7 @@
     .btn-view   { background-color: #007bff; color: white; }
     .btn-guild  { background-color: #6f42c1; color: white; }
     .btn-save   { background-color: #ff9800; color: white; }
+    .btn-help   { background-color: #ff6b81; color: white; }
 
     .top-left-actions{
       position: absolute;
@@ -115,16 +118,12 @@
       display: block;
     }
 
-    /* ✅ 섹션 제목(이미지처럼 예쁘게) */
     .form-section-title{
       font-weight: 900;
       font-size: 1.02em;
       margin-top: 14px;
       margin-bottom: 6px;
       color: rgba(0,0,0,0.9);
-    }
-    .form-section-title::before{
-      content: "";
     }
 
     .page-title{
@@ -142,7 +141,6 @@
       line-height: 1.3;
     }
 
-    /* ✅ 길드원 검색바 */
     .search-wrap{
       margin-top: 10px;
       position: relative;
@@ -166,7 +164,6 @@
     }
     .clear-search:hover{ background: rgba(255,0,0,0.12); }
 
-    /* ✅ 검색 하이라이트 */
     mark.hl{
       background: rgba(255, 214, 0, 0.55);
       padding: 0 3px;
@@ -174,19 +171,18 @@
       font-weight: 900;
     }
 
-    /* ✅ 오늘의 픽(사진 3장) - (요청 5가지 반영) */
     .pick-section{
       margin-top: 16px;
       padding-top: 14px;
-      border-top: 1px dashed rgba(0,0,0,0.22); /* 5) 구분선 */
+      border-top: 1px dashed rgba(0,0,0,0.22);
       position: relative;
-      padding-bottom: 28px; /* 3) 우측 하단 멘트 공간 */
+      padding-bottom: 28px;
     }
     .pick-title{
       font-weight: 900;
       margin: 6px 0 12px;
-      font-size: 1.18em;     /* 1) 조금 크게 */
-      text-align: center;     /* 1) 중앙 */
+      font-size: 1.18em;
+      text-align: center;
     }
     .pick-grid{
       display: grid;
@@ -203,13 +199,13 @@
     }
     .pick-card img{
       width: 100%;
-      aspect-ratio: 1 / 1;   /* 정사각형 */
-      object-fit: contain;   /* 2) 잘리지 않게 */
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
       display: block;
       background: rgba(255,255,255,0.7);
     }
     .pick-note{
-      position: absolute;    /* 3) 우측 하단 */
+      position: absolute;
       right: 0;
       bottom: 0;
       color: rgba(0,0,0,0.55);
@@ -218,7 +214,6 @@
       line-height: 1.25;
     }
 
-    /* 커스텀 체크박스 */
     .checkbox-group{
       display: flex;
       gap: 10px;
@@ -289,7 +284,6 @@
     summary { font-weight: 800; cursor: pointer; }
     ul { list-style: none; padding-left: 0; margin: 10px 0 0; }
 
-    /* 참여 명단 아이템 */
     .credit-item{
       display: flex;
       align-items: center;
@@ -300,7 +294,6 @@
     }
     .credit-item:last-child{ border-bottom: none; }
 
-    /* 작은 버튼(공용) */
     .small-btn{
       border:none;
       border-radius:8px;
@@ -313,7 +306,6 @@
     .small-btn:hover{ background: rgba(63,169,245,0.18); }
     .small-btn.danger:hover{ background: rgba(255,0,0,0.12); }
 
-    /* 길드원 명단 카드 */
     .member-card{
       border: 1px solid rgba(0,0,0,0.1);
       border-radius: 14px;
@@ -376,7 +368,6 @@
       flex:0 0 auto;
     }
 
-    /* 자기 정보 적기 */
     .add-row{
       display: flex;
       align-items: center;
@@ -400,7 +391,6 @@
       background: rgba(63,169,245,0.28);
     }
 
-    /* 입력 행(row): 닉네임/클래스 + 전투력 */
     .entry-row{
       display: flex;
       gap: 10px;
@@ -410,6 +400,51 @@
     .entry-row input[type="text"]{ margin: 0; }
     .entry-row .col-left{ flex: 1 1 auto; }
     .entry-row .col-right{ flex: 0 0 120px; }
+
+    /* 추가: 도와주세요 섹션 */
+    .help-request-box{
+      margin-top: 14px;
+      margin-bottom: 6px;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255, 245, 247, 0.92);
+      border: 1px solid rgba(255, 107, 129, 0.18);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+    }
+    .help-request-title{
+      font-weight: 900;
+      font-size: 1.05em;
+      margin-bottom: 6px;
+      color: #d6336c;
+    }
+    .help-list-section{
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px dashed rgba(0,0,0,0.18);
+    }
+    .help-list-title{
+      font-weight: 900;
+      font-size: 1.05em;
+      margin-bottom: 10px;
+    }
+    .help-record{
+      padding: 10px 12px;
+      margin: 8px 0;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 5px 12px rgba(0,0,0,0.05);
+    }
+    .help-record-name{
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+    .help-record-time{
+      color: rgba(0,0,0,0.68);
+      font-weight: 700;
+      font-size: 0.94em;
+    }
+
     @media (max-width: 420px){
       .entry-row{ flex-direction: column; align-items: stretch; }
       .entry-row .col-right{ flex: 1 1 auto; }
@@ -446,12 +481,11 @@
 
     let submissions = [];
     let guildMembers = [];
+    let helpRequests = [];
     let editingSubmissionId = null;
 
-    // ✅ 길드원 검색어
     let guildSearchQuery = "";
 
-    // ----- KST 유틸 -----
     const HOUR_MS = 3600 * 1000;
     const DAY_MS  = 24 * HOUR_MS;
     const KST_OFFSET_MS = 9 * HOUR_MS;
@@ -493,7 +527,6 @@
       document.title = `${md.month}월${md.day}일 커염 레이드 신청`;
     }
 
-    // ✅ 매주 화요일 00시: 참여 신청(submissions)만 초기화 / 길드원(guildMembers)은 유지
     async function ensureWeeklyReset() {
       const now = Date.now();
       const { resetUtcMs, resetKey } = getThisWeekTuesdayReset(now);
@@ -510,7 +543,6 @@
       }
     }
 
-    // ---------- 공통 유틸 ----------
     function escapeHtml(str) {
       return String(str)
         .replaceAll("&", "&amp;")
@@ -523,7 +555,6 @@
       return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
-    // ✅ 하이라이트: 검색어 매칭 부분을 <mark class="hl">로 감싸기
     function highlightHtml(text, query){
       const safe = escapeHtml(text ?? "");
       const q = String(query ?? "").trim();
@@ -611,7 +642,6 @@
       return max;
     }
 
-    // ✅ 길드원 항목 병합: nickClass 중복이면 "새 값으로 덮어쓰기"
     function mergeEntriesOverwrite(existingEntries, newEntries) {
       const keyOf = (s) => String(s ?? "").trim().toLowerCase();
       const map = new Map();
@@ -635,14 +665,12 @@
       ids.forEach(id => (document.getElementById(id).style.display = (id === screenId ? "block" : "none")));
     }
 
-    // 체크박스 기타 입력 토글
     window.toggleEtcInput = () => {
       const check = document.getElementById("etcTimeCheck");
       const input = document.getElementById("etcTimeInput");
       input.style.display = check.checked ? "block" : "none";
     };
 
-    // ✅ 길드원 검색
     window.onGuildSearchInput = () => {
       const el = document.getElementById("guildSearchInput");
       guildSearchQuery = (el?.value ?? "").trim();
@@ -659,7 +687,6 @@
       renderGuildList();
     };
 
-    // ✅ 오늘의 픽: "매일" 3장 랜덤(=KST 날짜 기준으로 고정)
     function dailyPicks(daySeed, total, count){
       let s = (daySeed >>> 0) + 0x9e3779b9;
       const next = () => {
@@ -675,7 +702,6 @@
       return Array.from(picked);
     }
 
-    // ✅ (4) 메인 화면에 스텔라 픽 렌더링
     function renderMainPick(){
       const box = document.getElementById("mainPickBox");
       if (!box) return;
@@ -685,7 +711,6 @@
 
       const imgsHtml = picks.map(n => {
         const base = String(n).padStart(3, "0");
-        // jpg 우선, 없으면 png로 자동 대체
         return `
           <div class="pick-card">
             <img src="./${base}.jpg" alt="오늘의 픽 ${base}" loading="lazy"
@@ -702,6 +727,75 @@
         </div>
       `;
     }
+
+    // ===== 추가: 도와주세요 기록 =====
+    function formatHelpDateTime(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return escapeHtml(value);
+
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${y}.${m}.${day} ${hh}:${mm}`;
+    }
+
+    function renderHelpRequestList() {
+      const box = document.getElementById("helpRequestList");
+      if (!box) return;
+
+      if (!helpRequests.length) {
+        box.innerHTML = `<p style="color:rgba(0,0,0,0.65); font-weight:700;">아직 기록이 없습니다.</p>`;
+        return;
+      }
+
+      const sorted = [...helpRequests].sort((a, b) => {
+        const aTime = a.datetime ? new Date(a.datetime).getTime() : 0;
+        const bTime = b.datetime ? new Date(b.datetime).getTime() : 0;
+        return bTime - aTime;
+      });
+
+      box.innerHTML = sorted.map(item => `
+        <div class="help-record">
+          <div class="help-record-name">🙋 신청자: ${escapeHtml(item.applicantName || "-")}</div>
+          <div class="help-record-time">🗓️ 일시: ${escapeHtml(formatHelpDateTime(item.datetime))}</div>
+        </div>
+      `).join("");
+    }
+
+    function watchHelpRequests() {
+      const helpRef = ref(db, "helpRequests");
+      onValue(helpRef, (snapshot) => {
+        helpRequests = [];
+        snapshot.forEach((childSnapshot) => {
+          helpRequests.push({ id: childSnapshot.key, ...childSnapshot.val() });
+        });
+        renderHelpRequestList();
+      });
+    }
+
+    window.submitHelpRequest = async () => {
+      const applicantName = document.getElementById("helpApplicantName").value.trim();
+      const datetime = document.getElementById("helpDateTime").value;
+
+      if (!applicantName || !datetime) {
+        alert("신청자 이름과 일시를 모두 입력해주세요.");
+        return;
+      }
+
+      await push(ref(db, "helpRequests"), {
+        applicantName,
+        datetime,
+        createdAt: Date.now()
+      });
+
+      alert("도와주세요 항목이 기록되었어요!");
+
+      document.getElementById("helpApplicantName").value = "";
+      document.getElementById("helpDateTime").value = "";
+    };
 
     // ---------------- 참여 신청 ----------------
     window.submitForm = async () => {
@@ -767,7 +861,6 @@
       });
     };
 
-    // 참여 삭제(비번)
     window.deleteEntryPublic = async (id) => {
       const item = submissions.find(s => s.id === id);
       if (!item) return;
@@ -786,7 +879,6 @@
       await remove(ref(db, `submissions/${id}`));
     };
 
-    // 참여 수정 화면 열기
     window.openEditSubmission = (id) => {
       const item = submissions.find(s => s.id === id);
       if (!item) return;
@@ -806,7 +898,6 @@
       showOnly("creditScreen");
     };
 
-    // 참여 수정 저장(비번)
     window.saveEditSubmission = async () => {
       if (!editingSubmissionId) return;
 
@@ -903,7 +994,6 @@
       });
     };
 
-    // 길드원 전체 삭제(비번)
     window.deleteGuildMemberPublic = async (id) => {
       const item = guildMembers.find(m => m.id === id);
       if (!item) return;
@@ -922,7 +1012,6 @@
       await remove(ref(db, `guildMembers/${id}`));
     };
 
-    // 길드원 항목 삭제(비번)
     window.deleteGuildEntry = async (memberId, entryIndex) => {
       const snap = await get(ref(db, `guildMembers/${memberId}`));
       if (!snap.exists()) return;
@@ -960,7 +1049,6 @@
       });
     };
 
-    // 길드원 항목 수정(비번)
     window.editGuildEntry = async (memberId, entryIndex) => {
       const snap = await get(ref(db, `guildMembers/${memberId}`));
       if (!snap.exists()) return;
@@ -1092,7 +1180,6 @@
         });
       }
 
-      // ✅ (중요) 길드원 화면에는 스텔라 픽을 더 이상 붙이지 않음 (메인으로 이동)
       box.innerHTML = html;
     }
 
@@ -1135,7 +1222,6 @@
       holder.appendChild(row);
     }
 
-    // 길드원 저장: displayName 동일이면 기존 업데이트 + nickClass 중복 덮어쓰기 + 비번
     window.submitGuildInfo = async () => {
       const displayName = document.getElementById("guildDisplayName").value.trim();
       if (!displayName) { alert("불리고 싶은 닉네임을 입력해주세요."); return; }
@@ -1219,7 +1305,6 @@
       showGuildList();
     };
 
-    // 뒤로가기
     window.goBackToMain = () => showOnly("mainForm");
     window.goBackToGuild = () => showOnly("guildScreen");
 
@@ -1229,13 +1314,13 @@
       await ensureWeeklyReset();
       updateTitle();
 
-      // ✅ 메인 스텔라 픽 렌더
       renderMainPick();
+      watchHelpRequests();
 
       setInterval(async () => {
         updateTitle();
         await ensureWeeklyReset();
-        renderMainPick(); // 날짜 바뀌면 자동 갱신 느낌
+        renderMainPick();
       }, 60 * 1000);
     })();
   </script>
@@ -1272,6 +1357,19 @@
       <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
     </div>
 
+    <!-- ✅ 새로 추가된 섹션 -->
+    <div class="help-request-box">
+      <div class="help-request-title">💗 도와주세요</div>
+
+      <div class="form-section-title">신청자</div>
+      <input type="text" id="helpApplicantName" placeholder="신청자 이름을 입력하세요">
+
+      <div class="form-section-title">일시</div>
+      <input type="datetime-local" id="helpDateTime">
+
+      <button class="btn btn-help" onclick="submitHelpRequest()">도와주세요 기록하기</button>
+    </div>
+
     <div class="form-section-title">🌕닉네임/클래스</div>
     <input type="text" id="nickname" placeholder="(예: 귀염/화술 또는 귀염 화술)">
 
@@ -1282,8 +1380,13 @@
     <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
     <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
 
-    <!-- ✅ (4) 스텔라 픽: 메인페이지 버튼 아래 -->
     <div id="mainPickBox"></div>
+
+    <!-- ✅ 메인 페이지 하단 기록 영역 -->
+    <div class="help-list-section">
+      <div class="help-list-title">📌 도와주세요 기록</div>
+      <div id="helpRequestList"></div>
+    </div>
   </div>
 
   <!-- 참여 명단 보기 화면 -->
