@@ -401,7 +401,6 @@
     .entry-row .col-left{ flex: 1 1 auto; }
     .entry-row .col-right{ flex: 0 0 120px; }
 
-    /* 추가: 도와주세요 섹션 */
     .help-request-box{
       margin-top: 14px;
       margin-bottom: 6px;
@@ -728,7 +727,6 @@
       `;
     }
 
-    // ===== 추가: 도와주세요 기록 =====
     function formatHelpDateTime(value) {
       if (!value) return "-";
       const d = new Date(value);
@@ -797,7 +795,6 @@
       document.getElementById("helpDateTime").value = "";
     };
 
-    // ---------------- 참여 신청 ----------------
     window.submitForm = async () => {
       await ensureWeeklyReset();
 
@@ -845,7 +842,6 @@
       toggleEtcInput();
     };
 
-    // ---------------- 참여 명단 보기 ----------------
     window.showCredits = async () => {
       await ensureWeeklyReset();
 
@@ -971,7 +967,6 @@
       creditText.innerHTML = html;
     }
 
-    // ---------------- 길드원 명단 보기 ----------------
     window.showGuildList = async () => {
       await ensureWeeklyReset();
 
@@ -1183,7 +1178,6 @@
       box.innerHTML = html;
     }
 
-    // ---------------- 자기 정보 적기 ----------------
     window.openGuildForm = () => {
       document.getElementById("guildDisplayName").value = "";
       const holder = document.getElementById("entryFields");
@@ -1308,7 +1302,6 @@
     window.goBackToMain = () => showOnly("mainForm");
     window.goBackToGuild = () => showOnly("guildScreen");
 
-    // ---------------- 시작 ----------------
     (async function boot() {
       updateTitle();
       await ensureWeeklyReset();
@@ -1357,7 +1350,16 @@
       <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
     </div>
 
-    <!-- ✅ 새로 추가된 섹션 -->
+    <div class="form-section-title">🌕닉네임/클래스</div>
+    <input type="text" id="nickname" placeholder="(예: 귀염/화술 또는 귀염 화술)">
+
+    <div class="form-section-title">⭐전투력</div>
+    <input type="text" id="percent" placeholder="(예: 6.0)">
+
+    <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
+    <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
+
+    <!-- ✅ 요청대로 여기로 이동 -->
     <div class="help-request-box">
       <div class="help-request-title">💗 도와주세요</div>
 
@@ -1370,19 +1372,10 @@
       <button class="btn btn-help" onclick="submitHelpRequest()">도와주세요 기록하기</button>
     </div>
 
-    <div class="form-section-title">🌕닉네임/클래스</div>
-    <input type="text" id="nickname" placeholder="(예: 귀염/화술 또는 귀염 화술)">
-
-    <div class="form-section-title">⭐전투력</div>
-    <input type="text" id="percent" placeholder="(예: 6.0)">
-
-    <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
-    <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
     <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
 
     <div id="mainPickBox"></div>
 
-    <!-- ✅ 메인 페이지 하단 기록 영역 -->
     <div class="help-list-section">
       <div class="help-list-title">📌 도와주세요 기록</div>
       <div id="helpRequestList"></div>
