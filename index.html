@@ -171,49 +171,6 @@
       font-weight: 900;
     }
 
-    .pick-section{
-      margin-top: 16px;
-      padding-top: 14px;
-      border-top: 1px dashed rgba(0,0,0,0.22);
-      position: relative;
-      padding-bottom: 28px;
-    }
-    .pick-title{
-      font-weight: 900;
-      margin: 6px 0 12px;
-      font-size: 1.18em;
-      text-align: center;
-    }
-    .pick-grid{
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    .pick-card{
-      width: 100%;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid rgba(0,0,0,0.10);
-      background: rgba(255,255,255,0.88);
-      box-shadow: 0 8px 18px rgba(0,0,0,0.06);
-    }
-    .pick-card img{
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: contain;
-      display: block;
-      background: rgba(255,255,255,0.7);
-    }
-    .pick-note{
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      color: rgba(0,0,0,0.55);
-      font-weight: 700;
-      font-size: 0.9em;
-      line-height: 1.25;
-    }
-
     .checkbox-group{
       display: flex;
       gap: 10px;
@@ -438,6 +395,12 @@
       font-weight: 900;
       margin-bottom: 4px;
     }
+    .help-record-content{
+      color: rgba(0,0,0,0.78);
+      font-weight: 700;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
     .help-record-time{
       color: rgba(0,0,0,0.68);
       font-weight: 700;
@@ -447,7 +410,6 @@
     @media (max-width: 420px){
       .entry-row{ flex-direction: column; align-items: stretch; }
       .entry-row .col-right{ flex: 1 1 auto; }
-      .pick-grid{ grid-template-columns: repeat(3, 1fr); }
     }
   </style>
 
@@ -550,6 +512,7 @@
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
     }
+
     function escapeRegExp(str){
       return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
@@ -585,6 +548,7 @@
     function normalizePower(value) {
       return String(value ?? "").replace(/%/g, "").trim();
     }
+
     function powerToNumber(value) {
       const v = normalizePower(value);
       const n = Number(v);
@@ -677,6 +641,7 @@
       if (clearBtn) clearBtn.style.display = guildSearchQuery ? "block" : "none";
       renderGuildList();
     };
+
     window.clearGuildSearch = () => {
       const el = document.getElementById("guildSearchInput");
       if (el) el.value = "";
@@ -685,47 +650,6 @@
       if (clearBtn) clearBtn.style.display = "none";
       renderGuildList();
     };
-
-    function dailyPicks(daySeed, total, count){
-      let s = (daySeed >>> 0) + 0x9e3779b9;
-      const next = () => {
-        s = (1664525 * s + 1013904223) >>> 0;
-        return s;
-      };
-
-      const picked = new Set();
-      while (picked.size < count) {
-        const r = next() % total;
-        picked.add(r + 1);
-      }
-      return Array.from(picked);
-    }
-
-    function renderMainPick(){
-      const box = document.getElementById("mainPickBox");
-      if (!box) return;
-
-      const daySeed = kstDayNumber(Date.now());
-      const picks = dailyPicks(daySeed, 26, 3);
-
-      const imgsHtml = picks.map(n => {
-        const base = String(n).padStart(3, "0");
-        return `
-          <div class="pick-card">
-            <img src="./${base}.jpg" alt="오늘의 픽 ${base}" loading="lazy"
-                 onerror="this.onerror=null; this.src='./${base}.png';">
-          </div>
-        `;
-      }).join("");
-
-      box.innerHTML = `
-        <div class="pick-section">
-          <div class="pick-title">🌟 오늘의 커염 스텔라 픽 🌟</div>
-          <div class="pick-grid">${imgsHtml}</div>
-          <div class="pick-note">매일 3명이 선정돼요.</div>
-        </div>
-      `;
-    }
 
     function formatHelpDateTime(value) {
       if (!value) return "-";
@@ -758,6 +682,7 @@
       box.innerHTML = sorted.map(item => `
         <div class="help-record">
           <div class="help-record-name">🙋 신청자: ${escapeHtml(item.applicantName || "-")}</div>
+          <div class="help-record-content">🎯 컨텐츠: ${escapeHtml(item.contentInfo || "-")}</div>
           <div class="help-record-time">🗓️ 일시: ${escapeHtml(formatHelpDateTime(item.datetime))}</div>
         </div>
       `).join("");
@@ -776,15 +701,17 @@
 
     window.submitHelpRequest = async () => {
       const applicantName = document.getElementById("helpApplicantName").value.trim();
+      const contentInfo = document.getElementById("helpContentInfo").value.trim();
       const datetime = document.getElementById("helpDateTime").value;
 
-      if (!applicantName || !datetime) {
-        alert("신청자 이름과 일시를 모두 입력해주세요.");
+      if (!applicantName || !contentInfo || !datetime) {
+        alert("신청자, 컨텐츠, 일시를 모두 입력해주세요.");
         return;
       }
 
       await push(ref(db, "helpRequests"), {
         applicantName,
+        contentInfo,
         datetime,
         createdAt: Date.now()
       });
@@ -792,6 +719,7 @@
       alert("도와주세요 항목이 기록되었어요!");
 
       document.getElementById("helpApplicantName").value = "";
+      document.getElementById("helpContentInfo").value = "";
       document.getElementById("helpDateTime").value = "";
     };
 
@@ -1306,14 +1234,11 @@
       updateTitle();
       await ensureWeeklyReset();
       updateTitle();
-
-      renderMainPick();
       watchHelpRequests();
 
       setInterval(async () => {
         updateTitle();
         await ensureWeeklyReset();
-        renderMainPick();
       }, 60 * 1000);
     })();
   </script>
@@ -1358,25 +1283,25 @@
 
     <button class="btn btn-submit" onclick="submitForm()">신청하기</button>
     <button class="btn btn-view" onclick="showCredits()">참여 명단 보기</button>
-
-    <!-- ✅ 요청대로 여기로 이동 -->
-    <div class="help-request-box">
-      <div class="help-request-title">💗 도와주세요</div>
-
-      <div class="form-section-title">신청자</div>
-      <input type="text" id="helpApplicantName" placeholder="신청자 이름을 입력하세요">
-
-      <div class="form-section-title">일시</div>
-      <input type="datetime-local" id="helpDateTime">
-
-      <button class="btn btn-help" onclick="submitHelpRequest()">도와주세요 기록하기</button>
-    </div>
-
     <button class="btn btn-guild" onclick="showGuildList()">길드원 명단 보기</button>
 
-    <div id="mainPickBox"></div>
-
+    <!-- 절취선 밑으로 이동 -->
     <div class="help-list-section">
+      <div class="help-request-box">
+        <div class="help-request-title">💗 도와주세요</div>
+
+        <div class="form-section-title">신청자</div>
+        <input type="text" id="helpApplicantName" placeholder="신청자 이름을 입력하세요">
+
+        <div class="form-section-title">컨텐츠</div>
+        <input type="text" id="helpContentInfo" placeholder="컨텐츠/난이도/기타 예:어비스/매우어려움/4종">
+
+        <div class="form-section-title">일시</div>
+        <input type="datetime-local" id="helpDateTime">
+
+        <button class="btn btn-help" onclick="submitHelpRequest()">도와주세요 기록하기</button>
+      </div>
+
       <div class="help-list-title">📌 도와주세요 기록</div>
       <div id="helpRequestList"></div>
     </div>
