@@ -50,10 +50,14 @@
       z-index: 1;
       text-align: left;
       backdrop-filter: blur(6px);
+      overflow-x: hidden;
     }
 
     input[type="text"], input[type="password"], input[type="datetime-local"] {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      display: block;
       padding: 12px;
       margin: 8px 0;
       border-radius: 10px;
@@ -63,6 +67,13 @@
       transition: border-color .15s ease, box-shadow .15s ease;
       background: rgba(255,255,255,0.95);
     }
+
+    input[type="datetime-local"]{
+      -webkit-appearance: none;
+      appearance: none;
+      overflow: hidden;
+    }
+
     input[type="text"]:focus,
     input[type="password"]:focus,
     input[type="datetime-local"]:focus{
@@ -366,6 +377,7 @@
       background: rgba(255, 245, 247, 0.92);
       border: 1px solid rgba(255, 107, 129, 0.18);
       box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+      overflow-x: hidden;
     }
     .help-request-title{
       font-weight: 900;
@@ -420,6 +432,11 @@
       .guild-entry-row{
         flex-direction: column;
         align-items: stretch;
+      }
+
+      input[type="datetime-local"]{
+        font-size: 16px;
+        padding-right: 10px;
       }
     }
   </style>
@@ -503,8 +520,8 @@
       const mondayDn = getTitleMondayDayNum(Date.now());
       const md = dayNumberToKstMD(mondayDn);
       const h1 = document.getElementById("pageTitle");
-      h1.textContent = `🐹${md.month}월${md.day}일 커염 길드 레이드 신청🐹`;
-      document.title = `${md.month}월${md.day}일 커염 레이드 신청`;
+      h1.textContent = `${md.month}월${md.day}일 커염 길드 레이드 신청🐹`;
+      document.title = `${md.month}월${md.day}일 커염 길드 레이드 신청🐹`;
     }
 
     async function ensureWeeklyReset() {
@@ -1315,7 +1332,7 @@
 </head>
 
 <body>
-  <h1 id="pageTitle">🐹커염 길드 레이드 신청</h1>
+  <h1 id="pageTitle">3월16일 커염 길드 레이드 신청🐹</h1>
 
   <!-- 메인 화면 -->
   <div class="container" id="mainForm">
@@ -1362,13 +1379,13 @@
         <div class="form-section-title">신청자</div>
         <input type="text" id="helpApplicantName" placeholder="신청자 이름을 입력하세요">
 
-        <div class="form-section-title">컨텐츠</div>
-        <input type="text" id="helpContentInfo" placeholder="컨텐츠/난이도/기타 예:어비스/매우어려움/4종">
+        <div class="form-section-title">컨텐츠/난이도/기타</div>
+        <input type="text" id="helpContentInfo" placeholder="(예:어비스/매우어려움/4종)">
 
         <div class="form-section-title">일시</div>
         <input type="datetime-local" id="helpDateTime">
 
-        <button class="btn btn-help" onclick="submitHelpRequest()">도와주세요 기록하기</button>
+        <button class="btn btn-help" onclick="submitHelpRequest()">도와주실거죠? 💗</button>
       </div>
 
       <div class="help-list-title">📌 도와주세요 기록</div>
