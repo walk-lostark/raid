@@ -1358,8 +1358,32 @@
 
   <!-- 메인 화면 -->
   <div class="container" id="mainForm">
-    <span class="section-title">☀️9시 고정!(특이사항은 길마에게)</span>
-    
+    <span class="section-title">☀️참여 가능 시간 (복수 선택 가능)</span>
+
+    <div class="checkbox-group">
+      <label class="cb">
+        <input type="checkbox" name="time" value="9시">
+        <span class="box"></span>
+        <span class="label-text">9시</span>
+      </label>
+
+      <label class="cb">
+        <input type="checkbox" name="time" value="9시반">
+        <span class="box"></span>
+        <span class="label-text">9시 반</span>
+      </label>
+
+      <label class="cb">
+        <input type="checkbox" id="etcTimeCheck" onchange="toggleEtcInput()">
+        <span class="box"></span>
+        <span class="label-text">기타</span>
+      </label>
+    </div>
+
+    <div id="etcTimeInput" style="display:none;">
+      <input type="text" id="etcTimeText" placeholder="원하는 시간을 입력하세요 (예: 10시)">
+    </div>
+
     <div class="form-section-title">🌕닉네임/클래스</div>
     <input type="text" id="nickname" placeholder="(예: 귀염/화술 또는 귀염 화술)">
 
