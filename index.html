@@ -819,39 +819,50 @@ const firebaseConfig = {
       });
 
 
-      await fetch("https://discord.com/api/webhooks/1503235744422953030/uX3YJNpBhDYkEKFLan7vEVXDKmYG2LC4NQlDeBPGVwo697sUtIg8-uHTHu6wjAQPajoM", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    username: "커염 알림봇",
-    embeds: [
-      {
-        title: "💗 도와주세요 신청!",
-        color: 16738740,
-        fields: [
-          {
-            name: "🙋 신청자",
-            value: applicantName,
-            inline: true
-          },
-          {
-            name: "🎯 컨텐츠",
-            value: contentInfo,
-            inline: true
-          },
-          {
-            name: "🗓️ 일시",
-            value: datetime.replace("T", " "),
-            inline: false
-          }
-        ],
-        timestamp: new Date().toISOString()
-      }
-    ]
-  })
-});
+try {
+  const discordResponse = await fetch("https://discord.com/api/webhooks/1503235744422953030/uX3YJNpBhDYkEKFLan7vEVXDKmYG2LC4NQlDeBPGVwo697sUtIg8-uHTHu6wjAQPajoM", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      username: "커염 알림봇",
+      content: "💗 도와주세요 신청이 등록됐어요!",
+      embeds: [
+        {
+          title: "💗 도와주세요 신청!",
+          color: 16738740,
+          fields: [
+            {
+              name: "🙋 신청자",
+              value: applicantName,
+              inline: true
+            },
+            {
+              name: "🎯 컨텐츠",
+              value: contentInfo,
+              inline: true
+            },
+            {
+              name: "🗓️ 일시",
+              value: datetime.replace("T", " "),
+              inline: false
+            }
+          ],
+          timestamp: new Date().toISOString()
+        }
+      ]
+    })
+  });
+
+  if (!discordResponse.ok) {
+    console.error("Discord 전송 실패:", discordResponse.status);
+    alert("기록은 저장됐지만 디스코드 알림 전송에 실패했어요.");
+  }
+} catch (error) {
+  console.error("Discord 오류:", error);
+  alert("기록은 저장됐지만 디스코드 알림 전송 중 오류가 났어요.");
+}
       
       alert("도와주세요 항목이 기록되었어요!");
 
