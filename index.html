@@ -811,13 +811,14 @@ const firebaseConfig = {
       }
 
       await push(ref(db, "helpRequests"), {
-        applicantName,
-        contentInfo,
-        datetime,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      });
+  applicantName,
+  contentInfo,
+  datetime,
+  createdAt: Date.now(),
+  updatedAt: Date.now()
+});
 
+console.log("Apps Script 호출 시작");
 
 try {
   await fetch("https://script.google.com/macros/s/AKfycbx--ZN9ctctBWVmTzslPu-UBL3Qn0r-cuBJPTqehDLCEJ2LJ1ox7bcdrGYZE-vjUp6fhg/exec", {
@@ -832,8 +833,10 @@ try {
       datetime
     })
   });
+
+  console.log("Apps Script 호출 완료");
 } catch (error) {
-  console.error("Discord 알림 요청 실패:", error);
+  console.error("Apps Script 호출 실패:", error);
 }
       
       alert("도와주세요 항목이 기록되었어요!");
