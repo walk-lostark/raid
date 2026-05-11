@@ -819,17 +819,18 @@ const firebaseConfig = {
 });
 
 console.log("Apps Script 호출 시작");
- 
-const params = new URLSearchParams();
-params.append("applicantName", applicantName);
-params.append("contentInfo", contentInfo);
-params.append("datetime", datetime);
 
-await fetch("https://script.google.com/macros/s/AKfycbx--ZN9ctctBWVmTzslPu-UBL3Qn0r-cuBJPTqehDLCEJ2LJ1ox7bcdrGYZE-vjUp6fhg/exec", {
-  method: "POST",
-  mode: "no-cors",
-  body: params
-});
+try {
+  const params = new URLSearchParams();
+  params.append("applicantName", applicantName);
+  params.append("contentInfo", contentInfo);
+  params.append("datetime", datetime);
+
+  await fetch("https://script.google.com/macros/s/AKfycbx--ZN9ctctBWVmTzslPu-UBL3Qn0r-cuBJPTqehDLCEJ2LJ1ox7bcdrGYZE-vjUp6fhg/exec", {
+    method: "POST",
+    mode: "no-cors",
+    body: params
+  });
 
   console.log("Apps Script 호출 완료");
 } catch (error) {
