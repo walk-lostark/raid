@@ -817,6 +817,41 @@ const firebaseConfig = {
         updatedAt: Date.now()
       });
 
+
+      await fetch("https://discord.com/api/webhooks/1503226046051516596/VhTlJrlfmJiI9RGrUFkc6gU0pRlwPsVQQ0sQ82SImWc7x9BzA4ChlHH6-7grcZjsCfuK", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    username: "커염 알림봇",
+    embeds: [
+      {
+        title: "💗 도와주세요 신청!",
+        color: 16738740,
+        fields: [
+          {
+            name: "🙋 신청자",
+            value: applicantName,
+            inline: true
+          },
+          {
+            name: "🎯 컨텐츠",
+            value: contentInfo,
+            inline: true
+          },
+          {
+            name: "🗓️ 일시",
+            value: datetime.replace("T", " "),
+            inline: false
+          }
+        ],
+        timestamp: new Date().toISOString()
+      }
+    ]
+  })
+});
+      
       alert("도와주세요 항목이 기록되었어요!");
 
       document.getElementById("helpApplicantName").value = "";
